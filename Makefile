@@ -1,5 +1,5 @@
 CXX=clang++
-CXXFLAGS=-Wall -Wextra -Werror -O2
+CXXFLAGS=-Wall -Wextra  -O2
 LDFLAGS= -lwiringPi -ltermios
 BUILD_DIR=build
 SRC_DIR=src
