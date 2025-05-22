@@ -28,3 +28,36 @@ Se der muito erro: pode tentar zerar o buffer de entrada (incomum)
 
 últimos 4 bytes tem que ser os útimos 4 dígitos da matrícúla, ex:
 0x07 0x08 0x01 0x03
+
+Vamos conversar com o sensor bmp via I2C
+
+## I2C
+
+Protocolo síncrono, half duplex
+
+UART -> barramento ponto a ponto
+I2C -> SCK/SCL (clock), SDA (Dados).
+
+Podem haver múltiplos dispositivos no mesmo barramento I2C,
+geralmente utilize mestre escravo, mas suporta múltiplos mestres (não há curto
+circuito devido à transistores que interrompem a comunicação).
+
+Para evitar erros, a próxima escrita em caso de erro tem offset aleatório (
+TCP/IP funciona assim)
+
+Para identificar só é necessário indicar o endereço no começo da mensagem,
+toda mensagem tem uma resposta (todo mundo espera a comunicação terminar)
+protocolo tem um tempo (?) para evitar monopólio.
+
+No projeto vamos utilizar um sensor BMP280, que é um sensor de pressão e
+temperatura. Usado para navegação e tempo.
+Precisão de +- 0.12 hPa (permite estimar altitude com precisão de 1m).
+
+É possível fazer medidas sofisticadas como lançes de escada (com estimativas
+de altura de lançes de escada) junto com altitude e número de passos.
+
+O sensor é um sistema embarcado rodando um firmware, com um frontend (fronteira do circuito).
+
+O sensor também tem um Driver
+
+ler o datasheet
