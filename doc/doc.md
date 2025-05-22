@@ -61,3 +61,6 @@ O sensor é um sistema embarcado rodando um firmware, com um frontend (fronteira
 O sensor também tem um Driver
 
 ler o datasheet
+
+i2cdetect -> detecta todos os dispositivos no barramento i2c (-y 1),
+fazer perguntas utilizando o driver, não vai dar tempo de implementar driver i2c
