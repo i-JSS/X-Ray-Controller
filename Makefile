@@ -1,6 +1,6 @@
-CXX=clang++
+CXX=g++
 CXXFLAGS=-Wall -Wextra  -O2
-LDFLAGS= -lwiringPi -ltermios
+LDFLAGS= -lwiringPi
 BUILD_DIR=build
 SRC_DIR=src
 EXECUTABLE=t2
