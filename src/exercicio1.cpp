@@ -93,8 +93,8 @@ private:
       return -1;
     }
 
-    cfsetospeed(&tty, B9600);
-    cfsetispeed(&tty, B9600);
+    cfsetospeed(&tty, baudRate);
+    cfsetispeed(&tty, baudRate);
 
     tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;
     tty.c_cflag |= (CLOCAL | CREAD);
