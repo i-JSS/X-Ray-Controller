@@ -8,14 +8,14 @@
 
 using namespace std;
 
-enum Command {
-  SOLICITA_INT = 0xA1,
-  SOLICITA_FLOAT = 0xA2,
-  SOLICITA_STRING = 0xA3,
-};
-
 class Uart {
 public:
+  enum class Command {
+    SOLICITA_INT = 0xA1,
+    SOLICITA_FLOAT = 0xA2,
+    SOLICITA_STRING = 0xA3,
+  };
+
   Uart(const string &portName, speed_t baudRate)
       : portName(portName), baudRate(baudRate) {
     int fd = open(portName.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
@@ -60,7 +60,7 @@ public:
     usleep(100000);
 
     switch (comando) {
-    case SOLICITA_INT: {
+    case Command::SOLICITA_INT: {
       int valor = 0;
       int lido = 0;
       while (lido < 4) {
@@ -70,7 +70,7 @@ public:
       }
       std::cout << "Valor recebido (int): " << valor << std::endl;
     } break;
-    case SOLICITA_FLOAT: {
+    case Command::SOLICITA_FLOAT: {
       float valor = 0;
       int lido = 0;
       while (lido < 4) {
@@ -80,7 +80,7 @@ public:
       }
       std::cout << "Valor recebido (float): " << valor << std::endl;
     } break;
-    case SOLICITA_STRING: {
+    case Command::SOLICITA_STRING: {
       uint8_t len;
       read(fd, &len, 1);
       std::string str(len + 1, '\0');
@@ -109,9 +109,10 @@ private:
 
 int main() {
   Uart uart("/dev/serial0", B9600);
-  uart.request(SOLICITA_INT);
-  uart.request(SOLICITA_FLOAT);
-  uart.request(SOLICITA_STRING);
+  // NOTE: ficou meio feio mas estamos c++ agr
+  uart.request(Uart::Command::SOLICITA_INT);
+  uart.request(Uart::Command::SOLICITA_FLOAT);
+  uart.request(Uart::Command::SOLICITA_STRING);
 
   return 0;
 }
