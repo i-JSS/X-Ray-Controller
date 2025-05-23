@@ -12,7 +12,7 @@ set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(BUILD_DIR ${CMAKE_BINARY_DIR})
 
 add_executable(x-ray-controller ${SRC_DIR}/main.cpp ${SRC_DIR}/uart.cpp)
-target_link_libraries(${EXECUTABLE} ${WIRINGPI_LIB})
+target_link_libraries(x-ray-controller ${WIRINGPI_LIB})
 
 add_executable(exercicio1 ${SRC_DIR}/exercicio1.cpp)
 target_link_libraries(exercicio1 ${WIRINGPI_LIB})
