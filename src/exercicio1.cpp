@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <fcntl.h>
 #include <iostream>
-#include <utility>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
@@ -16,6 +15,7 @@ enum class Command {
 };
 
 class Uart {
+public:
   Uart(const string &portName, speed_t baudRate)
       : portName(portName), baudRate(baudRate) {
     fd = open(portName.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
@@ -53,50 +53,56 @@ class Uart {
   void request(Command comando) {
     array<uint8_t, 5> msg = {uint8_t(comando), 8, 1, 5, 0};
     if (write(fd, msg.data(), msg.size()) != 5)
-      throw std::system_error(errno, std::generic_category(), "Failed writing to UART port");
+      throw std::system_error(errno, std::generic_category(),
+                              "Failed writing to UART port");
 
     fsync(fd);
     usleep(100000);
 
     switch (comando) {
-      case Command::SOLICITA_INT: {
-        int valor = 0;
-        int lido = 0;
-        while (lido < 4) {
-          int r = read(fd, ((unsigned char *)&valor) + lido, 4 - lido);
-          if (r > 0)
-            lido += r;
-        }
-        cout << "Valor recebido (int): " << valor << endl;
-        break;
+    case Command::SOLICITA_INT: {
+      int valor = 0;
+      int lido = 0;
+      while (lido < 4) {
+        int r = read(fd, ((unsigned char *)&valor) + lido, 4 - lido);
+        if (r > 0)
+          lido += r;
       }
-      case Command::SOLICITA_FLOAT: {
-        float valor = 0;
-        int lido = 0;
-        while (lido < 4) {
-          int r = read(fd, ((unsigned char *)&valor) + lido, 4 - lido);
-          if (r > 0)
-            lido += r;
-        }
-        cout << "Valor recebido (float): " << valor << endl;
-        break;
+      cout << "Valor recebido (int): " << valor << endl;
+      break;
+    }
+    case Command::SOLICITA_FLOAT: {
+      float valor = 0;
+      int lido = 0;
+      while (lido < 4) {
+        int r = read(fd, ((unsigned char *)&valor) + lido, 4 - lido);
+        if (r > 0)
+          lido += r;
       }
-      case Command::SOLICITA_STRING: {
-        uint8_t len;
-        if (read(fd, &len, 1) != 1)
-          throw runtime_error("Erro ao ler tamanho da string");
+      cout << "Valor recebido (float): " << valor << endl;
+      break;
+    }
+    case Command::SOLICITA_STRING: {
+      uint8_t len;
+      if (read(fd, &len, 1) != 1)
+        throw runtime_error("Erro ao ler tamanho da string");
 
-        string str(len, '\0');
-        int lido = 0;
-        while (lido < len) {
-          int r = read(fd, &str[lido], len - lido);
-          if (r > 0)
-            lido += r;
-        }
-        cout << "String recebida: " << str << endl;
-        break;
+      string str(len, '\0');
+      int lido = 0;
+      while (lido < len) {
+        int r = read(fd, &str[lido], len - lido);
+        if (r > 0)
+          lido += r;
       }
-    if (fd >= 0) close(fd);
+      cout << "String recebida: " << str << endl;
+      break;
+    }
+    }
+  }
+
+  ~Uart() {
+    if (fd >= 0)
+      close(fd);
   }
 
 private:
