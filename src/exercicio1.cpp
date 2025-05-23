@@ -2,20 +2,20 @@
 #include <cstdint>
 #include <fcntl.h>
 #include <iostream>
+#include <utility>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
 
 using namespace std;
 
-class Uart {
-public:
-  enum class Command {
-    SOLICITA_INT = 0xA1,
-    SOLICITA_FLOAT = 0xA2,
-    SOLICITA_STRING = 0xA3,
-  };
+enum class Command {
+  SOLICITA_INT = 0xA1,
+  SOLICITA_FLOAT = 0xA2,
+  SOLICITA_STRING = 0xA3,
+};
 
+class Uart {
   Uart(const string &portName, speed_t baudRate)
       : portName(portName), baudRate(baudRate) {
     fd = open(portName.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
@@ -51,54 +51,52 @@ public:
   }
 
   void request(Command comando) {
-    array<byte, 5> msg = {byte(comando), byte(8), byte(1), byte(5), byte(0)};
-    if (write(fd, &msg, 5) != 5)
-      throw std::system_error(errno, std::generic_category(),
-                              "Failed writing to UART port");
+    array<uint8_t, 5> msg = {uint8_t(comando), 8, 1, 5, 0};
+    if (write(fd, msg.data(), msg.size()) != 5)
+      throw std::system_error(errno, std::generic_category(), "Failed writing to UART port");
 
     fsync(fd);
     usleep(100000);
 
     switch (comando) {
-    case Command::SOLICITA_INT: {
-      int valor = 0;
-      int lido = 0;
-      while (lido < 4) {
-        int r = read(fd, ((unsigned char *)&valor) + lido, 4 - lido);
-        if (r > 0)
-          lido += r;
+      case Command::SOLICITA_INT: {
+        int valor = 0;
+        int lido = 0;
+        while (lido < 4) {
+          int r = read(fd, ((unsigned char *)&valor) + lido, 4 - lido);
+          if (r > 0)
+            lido += r;
+        }
+        cout << "Valor recebido (int): " << valor << endl;
+        break;
       }
-      std::cout << "Valor recebido (int): " << valor << std::endl;
-    } break;
-    case Command::SOLICITA_FLOAT: {
-      float valor = 0;
-      int lido = 0;
-      while (lido < 4) {
-        int r = read(fd, ((unsigned char *)&valor) + lido, 4 - lido);
-        if (r > 0)
-          lido += r;
+      case Command::SOLICITA_FLOAT: {
+        float valor = 0;
+        int lido = 0;
+        while (lido < 4) {
+          int r = read(fd, ((unsigned char *)&valor) + lido, 4 - lido);
+          if (r > 0)
+            lido += r;
+        }
+        cout << "Valor recebido (float): " << valor << endl;
+        break;
       }
-      std::cout << "Valor recebido (float): " << valor << std::endl;
-    } break;
-    case Command::SOLICITA_STRING: {
-      uint8_t len;
-      read(fd, &len, 1);
-      std::string str(len + 1, '\0');
-      int lido = 0;
-      while (lido < len) {
-        int r = read(fd, &str[lido], len - lido);
-        if (r > 0)
-          lido += r;
-      }
-      std::cout << "String recebida: " << str << std::endl;
-    } break;
-    }
-  }
+      case Command::SOLICITA_STRING: {
+        uint8_t len;
+        if (read(fd, &len, 1) != 1)
+          throw runtime_error("Erro ao ler tamanho da string");
 
-  ~Uart() {
-    if (fd != -1) {
-      close(fd);
-    }
+        string str(len, '\0');
+        int lido = 0;
+        while (lido < len) {
+          int r = read(fd, &str[lido], len - lido);
+          if (r > 0)
+            lido += r;
+        }
+        cout << "String recebida: " << str << endl;
+        break;
+      }
+    if (fd >= 0) close(fd);
   }
 
 private:
@@ -109,10 +107,9 @@ private:
 
 int main() {
   Uart uart("/dev/serial0", B9600);
-  // NOTE: ficou meio feio mas estamos c++ agr
-  uart.request(Uart::Command::SOLICITA_INT);
-  uart.request(Uart::Command::SOLICITA_FLOAT);
-  uart.request(Uart::Command::SOLICITA_STRING);
+  uart.request(Command::SOLICITA_INT);
+  uart.request(Command::SOLICITA_FLOAT);
+  uart.request(Command::SOLICITA_STRING);
 
   return 0;
 }
