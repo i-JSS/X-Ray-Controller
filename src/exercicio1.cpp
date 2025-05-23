@@ -18,7 +18,7 @@ public:
 
   Uart(const string &portName, speed_t baudRate)
       : portName(portName), baudRate(baudRate) {
-    int fd = open(portName.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
+    fd = open(portName.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
     if (fd == -1)
       throw std::system_error(errno, std::generic_category(),
                               "Failed to open UART port");
