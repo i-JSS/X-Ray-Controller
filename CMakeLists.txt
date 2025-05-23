@@ -17,6 +17,9 @@ target_link_libraries(x-ray-controller ${WIRINGPI_LIB})
 add_executable(exercicio1 ${SRC_DIR}/exercicio1.cpp)
 target_link_libraries(exercicio1 ${WIRINGPI_LIB})
 
+add_executable(exercicio2 ${SRC_DIR}/exercicio2.cpp)
+target_link_libraries(exercicio2 ${WIRINGPI_LIB})
+
 add_custom_target(debug
     COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
     COMMENT "Reconfiguring with debug flags"
