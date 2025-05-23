@@ -2,15 +2,18 @@
 #include <cstdint>
 #include <fcntl.h>
 #include <iostream>
+#include <utility>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
+#include <vector>
 
 using namespace std;
 
 class Uart {
 public:
 
+  array<uint8_t, 4> MATRICULA = {8, 1, 5, 0};
   enum class Command : uint8_t {
     INT_REQUEST = 0xA1,
     FLOAT_REQUEST = 0xA2,
@@ -20,14 +23,14 @@ public:
     STRING_SEND = 0xB3,
   };
 
-  Uart(const string &portName, speed_t baudRate)
-      : portName(portName), baudRate(baudRate) {}
+  Uart(string portName, const speed_t baudRate)
+      : portName(move(portName)), baudRate(baudRate) {}
 
   int request(Command comando) {
-    int fd = openSerial();
-    array<uint8_t, 5> msg = {uint8_t(comando), 8, 1, 5, 0};
+    const int fd = openSerial();
+    const array<uint8_t, 5> msg = {static_cast<uint8_t>(comando), MATRICULA[0], MATRICULA[1], MATRICULA[2], MATRICULA[3]};
     if (write(fd, msg.data(), msg.size()) != 5) {
-      throw std::system_error(errno, std::generic_category(), "Failed writing to UART port");
+      throw std::system_error(errno, std::generic_category(), "Erro ao enviar via UART");
     }
     fsync(fd);
     usleep(100000);
@@ -35,28 +38,31 @@ public:
   }
 
   void requestInt() {
-    int fd = request(Command::INT_REQUEST), valor = 0, lido = 0;
+    const int fd = request(Command::INT_REQUEST);
+    int valor = 0, lido = 0;
     while (lido < 4) {
-      int r = read(fd, ((unsigned char *)&valor) + lido, 4 - lido);
+      int r = read(fd, reinterpret_cast<unsigned char *>(&valor) + lido, 4 - lido);
       if (r > 0) lido += r;
     }
     cout << "Valor recebido (int): " << valor << endl;
-    closeSerial(fd);
+    close(fd);
   }
 
   void requestFloat() {
-    int fd = request(Command::FLOAT_REQUEST), lido = 0;
+    const int fd = request(Command::FLOAT_REQUEST);
+    int lido = 0;
     float valor = 0;
     while (lido < 4) {
-      int r = read(fd, ((unsigned char *)&valor) + lido, 4 - lido);
+      int r = read(fd, reinterpret_cast<unsigned char *>(&valor) + lido, 4 - lido);
       if (r > 0) lido += r;
     }
     cout << "Valor recebido (float): " << valor << endl;
-    closeSerial(fd);
+    close(fd);
   }
 
   void requestString() {
-    int fd = request(Command::STRING_REQUEST), lido = 0;
+    const int fd = request(Command::STRING_REQUEST);
+    int lido = 0;
     uint8_t len;
     if (read(fd, &len, 1) != 1) throw runtime_error("Erro ao ler tamanho da string");
     string str(len, '\0');
@@ -65,7 +71,54 @@ public:
       if (r > 0) lido += r;
     }
     cout << "String recebida: " << str << endl;
-    closeSerial(fd);
+    close(fd);
+  }
+
+  void sendInt(int num) {
+    const int fd = openSerial();
+    const array<uint8_t, 9> msg = {static_cast<uint8_t>(Command::INT_SEND),
+      static_cast<uint8_t>((num >> 24)),
+      static_cast<uint8_t>((num >> 16)),
+      static_cast<uint8_t>((num >> 8)),
+      static_cast<uint8_t>(num),
+      MATRICULA[0], MATRICULA[1], MATRICULA[2], MATRICULA[3]};
+    if (write(fd, msg.data(), msg.size()) != 9) {
+      throw std::system_error(errno, std::generic_category(), "Erro ao enviar via UART");
+    }
+    close(fd);
+  }
+
+  void sendFloat(int num) {
+    const int fd = openSerial();
+
+    uint8_t* bytes = reinterpret_cast<uint8_t*>(&num);
+
+    array<uint8_t, 9> msg = {
+      static_cast<uint8_t>(Command::FLOAT_SEND),
+      bytes[3],
+      bytes[2],
+      bytes[1],
+      bytes[0],
+      MATRICULA[0], MATRICULA[1], MATRICULA[2], MATRICULA[3]
+    };
+    if (write(fd, msg.data(), msg.size()) != 9) {
+      throw std::system_error(errno, std::generic_category(), "Erro ao enviar via UART");
+    }
+    close(fd);
+  }
+
+  void sendString(const string& str) {
+    const int fd = openSerial();
+    vector<uint8_t> msg;
+    msg.push_back(static_cast<uint8_t>(Command::STRING_SEND));
+    msg.push_back(static_cast<uint8_t>(str.size()));
+    msg.insert(msg.end(), str.begin(), str.end());
+    msg.insert(msg.end(), MATRICULA.begin(), MATRICULA.end());
+
+    if (write(fd, msg.data(), msg.size()) != static_cast<int>(msg.size())) {
+      throw std::system_error(errno, std::generic_category(), "Erro ao enviar via UART");
+    }
+    close(fd);
   }
 
 private:
@@ -73,7 +126,7 @@ private:
   speed_t baudRate;
 
   int openSerial() {
-    int fd = open(portName.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
+    const int fd = open(portName.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
     if (fd == -1) {
       perror("Erro ao abrir UART");
       return -1;
@@ -111,17 +164,63 @@ private:
 
     return fd;
   }
-
-  void closeSerial(int fd) {
-    if (fd >= 0) close(fd);
-  }
 };
 
 int main() {
   Uart uart("/dev/serial0", B9600);
-  uart.requestInt();
-  uart.requestFloat();
-  uart.requestString();
 
-  return 0;
+  while (true) {
+    cout << "\n--- Menu UART ---\n";
+    cout << "1. Requisitar inteiro\n";
+    cout << "2. Requisitar float\n";
+    cout << "3. Requisitar string\n";
+    cout << "4. Enviar inteiro\n";
+    cout << "5. Enviar float\n";
+    cout << "6. Enviar string\n";
+    cout << "0. Sair\n";
+    cout << "Escolha uma opcao: ";
+
+    int opcao;
+    cin >> opcao;
+
+    switch (opcao) {
+      case 1:
+        uart.requestInt();
+        break;
+      case 2:
+        uart.requestFloat();
+        break;
+      case 3:
+        uart.requestString();
+        break;
+      case 4: {
+        int num;
+        cout << "Digite um inteiro: ";
+        cin >> num;
+        uart.sendInt(num);
+        break;
+      }
+      case 5: {
+        float num;
+        cout << "Digite um float: ";
+        cin >> num;
+        uart.sendFloat(num);
+        break;
+      }
+      case 6: {
+        string str;
+        cout << "Digite uma string: ";
+        cin.ignore();
+        getline(cin, str);
+        uart.sendString(str);
+        break;
+      }
+      case 0:
+        cout << "Encerrando...\n";
+        return 0;
+      default:
+        cout << "Opcao invalida. Tente novamente.\n";
+        break;
+    }
+  }
 }
