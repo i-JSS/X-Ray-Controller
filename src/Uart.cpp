@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <string>
 #include <cstring>
+#include <csignal>
 
 using namespace std;
 
@@ -41,6 +42,7 @@ public:
         : portName(move(portName)), baudRate(baudRate) {}
 
     void closeUart() const {
+        cout << "Fechando Uart com segurança\n";
         if (fd > 0) close(fd);
     }
 
@@ -291,10 +293,18 @@ private:
 
 };
 
+Uart uart("/dev/serial0", B115200);
 
+void closeProgram(int signal) {
+    uart.closeUart();
+    // TODO ADICIONAR O FECHAMENTO DO GPIO I2C E DESLIGAR OS ATUADORES
+    exit(0);
+}
 
 int main() {
-    Uart uart("/dev/serial0", B115200);
+    signal(SIGINT, closeProgram);
+    cout << "Programa rodando... (Ctrl+C para sair)\n";
+
     cout << "\n Mover Eixo-X (Esquerda / Direita): \n";
     uart.requestRead(Uart::SubCode::MOVE_X_LEFT_RIGHT);
     cout << "\n Mover Eixo-X (Para Cima / Para Baixo): \n";
