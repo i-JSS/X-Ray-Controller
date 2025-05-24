@@ -9,7 +9,7 @@
 
 using namespace std;
 
-vector<uint8_t> ModbusController::mountMessageRead(SubCode subcode) {
+vector<uint8_t> ModbusController::createReadMsg(SubCode subcode) {
   vector<uint8_t> msg = {ESP_ADDRESS, static_cast<uint8_t>(Code::READ),
                          static_cast<uint8_t>(subcode), 0x01};
   msg.insert(msg.end(), MATRICULA.begin(), MATRICULA.end());
@@ -25,15 +25,27 @@ vector<uint8_t> ModbusController::mountMessageRead(SubCode subcode) {
 void ModbusController::requestRead(SubCode subcode) {
   uart_.ensureOpen();
   while (true) {
-    vector<uint8_t> msg = mountMessageRead(subcode);
-    uart_.send(msg);
+    // PERF: alocar a mensagem todas as vezes pode ser c
+    vector<uint8_t> msg = createReadMsg(subcode);
+    bool res = uart_.send(msg);
+    if (!res) {
+      cerr << "Failed to send modbus message" << endl;
+      continue;
+    }
 
-    uint8_t buffer[256];
-    ssize_t len = uart_.safe_read_into(buffer);
+    array<uint8_t, 256> buffer;
+    ssize_t len = uart_.read_into(buffer);
+    if (len < 0) {
+      cerr << "Failed to read modbus response" << endl;
+      continue;
+    }
 
-    vector<uint8_t> resposta(buffer, buffer + len);
-    if (isValidCRC(resposta.data(), resposta.size()))
+    vector<uint8_t> resposta(buffer.begin(), buffer.begin() + len);
+    if (isValidCRC(resposta.data(), resposta.size())) {
       break;
+    } else {
+      cerr << "Invalid checksum" << endl;
+    }
   }
   uart_.ensureClosed();
 }

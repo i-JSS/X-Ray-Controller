@@ -19,10 +19,11 @@ public:
       : portName(portName), baudRate(baudRate) {}
   ~UARTController() { ensureClosed(); }
 
-  void send(const span<uint8_t> data);
   void ensureOpen();
   void ensureClosed();
-  void read_into(span<uint8_t> buffer);
+
+  bool send(const span<uint8_t> data);
+  ssize_t read_into(span<uint8_t> buffer);
 
 private:
   int fd;

@@ -17,29 +17,18 @@ void UARTController::ensureClosed() {
   }
 }
 
-void UARTController::send(const span<uint8_t> data) {
+bool UARTController::send(const span<uint8_t> data) {
   int count = write(fd, data.data(), data.size());
-  if (count < 0 || count != static_cast<int>(data.size()))
-    throw std::system_error(errno, std::generic_category(),
-                            "Falha ao escrever dados");
+  bool result = (count > 0 && count != static_cast<int>(data.size()));
+
   fsync(fd);
   usleep(100000);
+
+  return result;
 }
 
-void UARTController::read_into(span<uint8_t> buffer) {
-  ssize_t bytesRead;
-  while (bytesRead < buffer.size()) {
-    ssize_t r =
-        read(fd, buffer.subspan(bytesRead).data(), buffer.size() - bytesRead);
-    if (r > 0)
-      bytesRead += r;
-    // NOTE: não sei se é pra pra adicionar esse error handling aqui
-    // else if (r == 0)
-    //   break; // EOF ou sem dados
-    // else
-    //   throw std::system_error(errno, std::generic_category(),
-    //                           "Erro ao ler dados da UART");
-  }
+ssize_t UARTController::read_into(span<uint8_t> buffer) {
+  return read(fd, buffer.data(), buffer.size());
 }
 
 void UARTController::ensureOpen() {

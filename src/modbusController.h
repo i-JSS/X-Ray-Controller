@@ -39,7 +39,7 @@ public:
   void requestRead(SubCode subcode);
 
 private:
-  vector<uint8_t> mountMessageRead(SubCode subcode);
+  vector<uint8_t> createReadMsg(SubCode subcode);
   UARTController uart_;
 
   static constexpr uint8_t ESP_ADDRESS = 0x01;
