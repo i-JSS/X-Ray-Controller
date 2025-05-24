@@ -22,8 +22,7 @@ public:
   void send(const span<uint8_t> data);
   void ensureOpen();
   void ensureClosed();
-  ssize_t read_into(span<uint8_t> buffer);
-  ssize_t safe_read_into(span<uint8_t> buffer);
+  void read_into(span<uint8_t> buffer);
 
 private:
   int fd;

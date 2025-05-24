@@ -49,12 +49,7 @@ private:
   void request_into(Command command, span<uint8_t> buffer) {
     uart_.ensureOpen();
     request(command);
-    ssize_t bytesRead = 0;
-    while (bytesRead < buffer.size()) {
-      ssize_t r = uart_.read_into(buffer.subspan(bytesRead));
-      if (r > 0)
-        bytesRead += r;
-    }
+    uart_.read_into(buffer);
     uart_.ensureClosed();
   }
 
@@ -82,16 +77,11 @@ public:
   std::string requestString() {
     uart_.ensureOpen();
     request(Command::STRING_REQUEST);
-    int lido = 0;
     uint8_t len;
     uart_.read_into(span<uint8_t>(&len, 1));
     string str(len, '\0');
-    while (lido < len) {
-      ssize_t r = uart_.read_into(
-          span<uint8_t>(reinterpret_cast<uint8_t *>(&str[lido]), len - lido));
-      if (r > 0)
-        lido += r;
-    }
+    uart_.read_into(
+        span<uint8_t>(reinterpret_cast<uint8_t *>(str.data()), len));
     return str;
   }
   void send(int num) {

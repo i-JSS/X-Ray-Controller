@@ -4,6 +4,7 @@
 #include <span>
 #include <string>
 #include <sys/types.h>
+#include <system_error>
 #include <termios.h>
 #include <unistd.h>
 
@@ -25,16 +26,20 @@ void UARTController::send(const span<uint8_t> data) {
   usleep(100000);
 }
 
-ssize_t UARTController::read_into(span<uint8_t> buffer) {
-  return read(fd, buffer.data(), buffer.size());
-}
-
-ssize_t UARTController::safe_read_into(span<uint8_t> buffer) {
-  ssize_t len = read(fd, buffer.data(), buffer.size());
-  if (len < 0)
-    throw std::system_error(errno, std::generic_category(),
-                            "Erro ao ler dados da UART");
-  return len;
+void UARTController::read_into(span<uint8_t> buffer) {
+  ssize_t bytesRead;
+  while (bytesRead < buffer.size()) {
+    ssize_t r =
+        read(fd, buffer.subspan(bytesRead).data(), buffer.size() - bytesRead);
+    if (r > 0)
+      bytesRead += r;
+    // NOTE: não sei se é pra pra adicionar esse error handling aqui
+    // else if (r == 0)
+    //   break; // EOF ou sem dados
+    // else
+    //   throw std::system_error(errno, std::generic_category(),
+    //                           "Erro ao ler dados da UART");
+  }
 }
 
 void UARTController::ensureOpen() {
