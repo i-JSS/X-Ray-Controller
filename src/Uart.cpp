@@ -9,12 +9,12 @@
 #include <vector>
 #include <iomanip>
 #include <string>
+#include <cstring>
 
 using namespace std;
 
 class Uart {
 public:
-    int fd; // ta aqui pra quando der ctrl c podemos fechar com segurança a qualquer momento!
     uint8_t ESP_ADDRESS = 0x01;
     array<uint8_t, 4> MATRICULA = {8, 1, 5, 0};
 
@@ -39,6 +39,10 @@ public:
 
     Uart(string portName, const speed_t baudRate)
         : portName(move(portName)), baudRate(baudRate) {}
+
+    void closeUart() const {
+        if (fd > 0) close(fd);
+    }
 
     vector<uint8_t> mountMessageRead(SubCode subcode) {
         vector<uint8_t> msg = {
@@ -71,7 +75,7 @@ public:
             }
 
             fsync(fd);
-            usleep(100000);
+            usleep(50000);
 
             uint8_t buffer[256];
             ssize_t len = read(fd, buffer, sizeof(buffer));
@@ -90,7 +94,98 @@ public:
                 cout << "Valor inteiro: " << valor << endl;
                 break;
             }
-            cout << "CRC inválido. Tentando novamente...\n";
+            cout << "Tentando novamente CRC inválido: ";
+            printHex(resposta);
+        }
+        close(fd);
+    }
+
+    vector<uint8_t> mountMessageWrite(SubCode subcode, const std::vector<uint8_t>& content) {
+        vector<uint8_t> msg = {
+            ESP_ADDRESS,
+            static_cast<uint8_t>(Code::WRITE),
+            static_cast<uint8_t>(subcode),
+        };
+        msg.push_back(static_cast<uint8_t>(content.size()));
+        msg.insert(msg.end(), content.begin(), content.end());
+        msg.insert(msg.end(), MATRICULA.begin(), MATRICULA.end());
+        uint16_t crc = calculateCRC(msg.data(), msg.size());
+
+        msg.push_back(crc);
+        msg.push_back((crc >> 8));
+
+        cout << "Enviando: ";
+        printHex(msg);
+        return msg;
+    }
+
+    void requestWriteFloat(SubCode subcode, float value) {
+        fd = openSerial();
+        vector<uint8_t> bytes(sizeof(float));
+        memcpy(bytes.data(), &value, sizeof(float));
+        while (true) {
+            vector<uint8_t> msg = mountMessageWrite(subcode, bytes);
+            if (write(fd, msg.data(), msg.size()) != static_cast<int>(msg.size())) {
+                cerr << "Erro ao enviar dados.\n";
+                continue;
+            }
+
+            fsync(fd);
+            usleep(50000);
+
+            uint8_t buffer[256];
+            ssize_t len = read(fd, buffer, sizeof(buffer));
+            if (len < 0) {
+                cerr << "Erro na leitura da resposta.\n";
+                continue;
+            }
+
+            vector<uint8_t> resposta(buffer, buffer + len);
+
+            if (isValidCRC(resposta.data(), resposta.size())) {
+                cout << "CRC válido! Resposta recebida: ";
+                printHex(resposta);
+                uint32_t valor = resposta[2];
+                cout << "Valor inteiro: " << valor << endl;
+                break;
+            }
+            cout << "Tentando novamente CRC inválido: ";
+            printHex(resposta);
+        }
+        close(fd);
+    }
+
+    void requestWriteByte(SubCode code, uint8_t value) {
+        fd = openSerial();
+        vector<uint8_t> bytes = {value};
+        while (true) {
+            vector<uint8_t> msg = mountMessageWrite(code, bytes);
+            if (write(fd, msg.data(), msg.size()) != static_cast<int>(msg.size())) {
+                cerr << "Erro ao enviar dados.\n";
+                continue;
+            }
+
+            fsync(fd);
+            usleep(50000);
+
+            uint8_t buffer[256];
+            ssize_t len = read(fd, buffer, sizeof(buffer));
+            if (len < 0) {
+                cerr << "Erro na leitura da resposta.\n";
+                continue;
+            }
+
+            vector<uint8_t> resposta(buffer, buffer + len);
+
+            if (isValidCRC(resposta.data(), resposta.size())) {
+                cout << "CRC válido! Resposta recebida: ";
+                printHex(resposta);
+                uint32_t valor = resposta[2];
+                cout << "Valor inteiro: " << valor << endl;
+                break;
+            }
+            cout << "Tentando novamente CRC inválido: ";
+            printHex(resposta);
         }
         close(fd);
     }
@@ -98,6 +193,7 @@ public:
 private:
     string portName;
     speed_t baudRate;
+    int fd = -1;
 
     int openSerial() {
         int fd = open(portName.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
@@ -138,7 +234,6 @@ private:
 
         return fd;
     }
-
 
     short CRC16(short crc, char data){
         const unsigned short tbl[256] = {
@@ -196,12 +291,34 @@ private:
 
 };
 
+
+
 int main() {
     Uart uart("/dev/serial0", B115200);
+    cout << "\n Mover Eixo-X (Esquerda / Direita): \n";
     uart.requestRead(Uart::SubCode::MOVE_X_LEFT_RIGHT);
+    cout << "\n Mover Eixo-X (Para Cima / Para Baixo): \n";
     uart.requestRead(Uart::SubCode::MOVE_Y_UP_DOWN);
+    cout << "\n Posições Pré-Definidas (1 a 4): \n";
     uart.requestRead(Uart::SubCode::PRESET_POSITIONS);
+    cout << "\n Botão para Programar Posição Pré-deinida: \n";
     uart.requestRead(Uart::SubCode::SET_PRESET_POSITION);
+    cout << "\n Calibrar: \n";
     uart.requestRead(Uart::SubCode::CALIBRATE);
+
+    cout << "\n\n Velocidade Instantânea Eixo-X: \n";
+    uart.requestWriteFloat(Uart::SubCode::REG_SPEED_X, 0.1f);
+    cout << "\n Velocidade Instantânea Eixo-Y: \n";
+    uart.requestWriteFloat(Uart::SubCode::REG_SPEED_Y, 0.2f);
+    cout << "\n Posição Eixo-X: \n";
+    uart.requestWriteFloat(Uart::SubCode::REG_POSITION_X, 0.3f);
+    cout << "\n Posição Eixo-Y: \n";
+    uart.requestWriteFloat(Uart::SubCode::REG_POSITION_Y, 0.3f);
+    cout << "\n Temperatura do ambiente: \n";
+    uart.requestWriteFloat(Uart::SubCode::REG_TEMPERATURE, 0.5f);
+    cout << "\n Pressão Atmosférica do ambiente: \n";
+    uart.requestWriteFloat(Uart::SubCode::REG_PRESSURE, 0.6f);
+    cout << "\n Estado de Operação da Máquina: \n";
+    uart.requestWriteByte(Uart::SubCode::REG_MACHINE_STATE, 0x01);
     return 0;
 }
