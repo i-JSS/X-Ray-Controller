@@ -22,27 +22,22 @@ static void printHex(const vector<uint8_t> &data) {
 }
 #endif
 
-void ModbusController::createMsg(Code code, SubCode subcode,
-                                 vector<uint8_t> &msg,
-                                 span<uint8_t> data = {}) {
-  array<uint8_t, 4> MATRICULA = {8, 1, 5, 0};
-  msg.clear();
-  // 1 byte ESP, 2 byes code e subcode, 1 byte tamanho, n bytes dados,
-  // matricula, 2 bytes crc
-  msg.reserve(4 * sizeof(uint8_t) + data.size() + MATRICULA.size() + 2);
-  msg = {ESP_ADDRESS, static_cast<uint8_t>(code),
-         static_cast<uint8_t>(subcode)};
-  if (data.empty()) {
-    msg.push_back(0x01);
-  } else {
-    msg.push_back(data.size());
+vector<uint8_t> ModbusController::createMsg(Code code, SubCode subcode,
+                                            span<uint8_t> data = {}) {
+
+  vector<uint8_t> msg = {
+      ESP_ADDRESS,
+      static_cast<uint8_t>(code),
+      static_cast<uint8_t>(subcode),
+      data.empty() ? static_cast<uint8_t>(1) : static_cast<uint8_t>(data.size())};
+  if (!data.empty())
     msg.insert(msg.end(), data.begin(), data.end());
-  }
 
   msg.insert(msg.end(), MATRICULA.begin(), MATRICULA.end());
+
   uint16_t crc = calculateCRC(msg.data(), msg.size());
-  msg.push_back(crc);
-  msg.push_back(crc >> 8);
+  msg.push_back(static_cast<uint8_t>(crc & 0xFF));
+  msg.push_back(static_cast<uint8_t>(crc >> 8));
 
 #ifdef DEBUG
   static unordered_map<Code, string> codeToString = {
@@ -83,25 +78,21 @@ void ModbusController::createMsg(Code code, SubCode subcode,
   printHex(msg);
   std::cout << "--- Fim da mensagem ----\n";
 #endif
-}
-// NOTE: inlining aqui faria sentido
-vector<uint8_t> ModbusController::createReadMsg(SubCode subcode) {
-  vector<uint8_t> msg;
-  createMsg(Code::READ, subcode, msg);
   return msg;
+}
+
+vector<uint8_t> ModbusController::createReadMsg(SubCode subcode) {
+  return createMsg(Code::READ, subcode);
 }
 
 vector<uint8_t> ModbusController::createWriteMsg(SubCode subcode,
                                                  span<uint8_t> data) {
-  vector<uint8_t> msg;
-  createMsg(Code::WRITE, subcode, msg, data);
-  return msg;
+  return createMsg(Code::WRITE, subcode, data);
 }
 
 uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
                                        span<uint8_t> data) {
-  vector<uint8_t> msg;
-  createMsg(code, subcode, msg, data);
+  vector<uint8_t> msg = createMsg(code, subcode, data);
   uart_.ensureOpen();
   while (true) {
     bool res = uart_.send(msg);

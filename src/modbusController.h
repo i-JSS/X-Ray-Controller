@@ -43,8 +43,7 @@ public:
 
 private:
   uint32_t makeRequest(Code code, SubCode subcode, span<uint8_t> data = {});
-  void createMsg(Code code, SubCode subcode, vector<uint8_t> &msg,
-                 span<uint8_t> data);
+  vector<uint8_t> createMsg(Code code, SubCode subcode, span<uint8_t> data);
   vector<uint8_t> createReadMsg(SubCode subcode);
   vector<uint8_t> createWriteMsg(SubCode subcode, span<uint8_t> data);
   UARTController uart_;
