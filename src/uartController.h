@@ -23,9 +23,9 @@ public:
   void ensureOpen();
   void ensureClosed();
 
-  bool send(const span<uint8_t> data);
-  ssize_t read_into(span<uint8_t> buffer);
-  optional<vector<uint8_t>> read(ssize_t max);
+  void send(const span<uint8_t> data);
+  void read_into(span<uint8_t> buffer);
+  vector<uint8_t> read(ssize_t max);
 
 private:
   int fd;

@@ -3,7 +3,6 @@
 #include <array>
 #include <cstdint>
 #include <fcntl.h>
-#include <optional>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
@@ -97,30 +96,20 @@ uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
   uart_.ensureOpen();
 
   while (true) {
-    if (!uart_.send(msg)) {
-      cerr << "Failed to send modbus message" << endl;
+    try {
+      uart_.send(msg);
+      auto response = uart_.read(256);
+
+      if (isValidCRC(response.data(), response.size())) {
+        uart_.ensureClosed();
+        return response[2];
+      }
+      cerr << "Invalid checksum" << endl;
+    } catch (const std::system_error &e) {
+      cerr << "Erro ao fazer requisição: " << e.what() << endl;
       continue;
     }
-
-    auto answer = uart_.read(256);
-    if (!answer) {
-      cerr << "Failed to read modbus response" << endl;
-      continue;
-    }
-
-    const auto &response = *answer;
-    if (isValidCRC(response.data(), response.size())) {
-      uart_.ensureClosed();
-#ifdef DEBUG
-      std::cout << "Resposta recebida: ";
-      printHex(answer);
-#endif
-      return response[2];
-    }
-    cerr << "Invalid checksum" << endl;
   }
-  uart_.ensureClosed();
-  return -1; // Não deve chegar aqui
 }
 
 uint32_t ModbusController::requestRead(SubCode subcode) {
