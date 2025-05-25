@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
+#include <unordered_map>
 
 using namespace std;
 
@@ -44,7 +45,7 @@ void ModbusController::createMsg(Code code, SubCode subcode,
       {Code::READ, "READ"},
       {Code::WRITE, "WRITE"},
   };
-  static unordered_map<Code, string> subcodeToString = {
+  static unordered_map<SubCode, string> subcodeToString = {
       {SubCode::MOVE_X_LEFT_RIGHT, "MOVE_X_LEFT_RIGHT"},
       {SubCode::MOVE_Y_UP_DOWN, "MOVE_Y_UP_DOWN"},
       {SubCode::PRESET_POSITIONS, "PRESET_POSITIONS"},
