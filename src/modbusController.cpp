@@ -81,7 +81,7 @@ void ModbusController::createMsg(Code code, SubCode subcode,
   printHex({static_cast<uint8_t>(crc & 0xFF), static_cast<uint8_t>(crc >> 8)});
   std::cout << "Payload: ";
   printHex(msg);
-  std::cout << std::dec << std::endl;
+  std::cout << "--- Fim da mensagem ----\n";
 #endif
 }
 // NOTE: inlining aqui faria sentido
