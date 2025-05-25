@@ -43,6 +43,9 @@ optional<vector<uint8_t>> UARTController::read(ssize_t max) {
 }
 
 void UARTController::ensureOpen() {
+  if (fd != -1) {
+    return;
+  }
   fd = open(portName.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
   if (fd == -1)
     throw std::system_error(errno, std::generic_category(),
