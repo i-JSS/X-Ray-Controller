@@ -100,11 +100,11 @@ uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
       uart_.send(msg);
       auto response = uart_.read(256);
 
-      if (isValidCRC(response.data(), response.size())) {
-        uart_.ensureClosed();
-        return response[2];
-      }
-      cerr << "Invalid checksum" << endl;
+      if (!isValidCRC(response.data(), response.size()))
+        throw std::runtime_error("Invalid CRC checksum");
+
+      uart_.ensureClosed();
+      return response[2];
     } catch (const std::system_error &e) {
       cerr << "Erro ao fazer requisição: " << e.what() << endl;
       continue;
