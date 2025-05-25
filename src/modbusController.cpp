@@ -39,8 +39,44 @@ void ModbusController::createMsg(Code code, SubCode subcode,
   msg.push_back(crc);
   msg.push_back(crc >> 8);
 
-#ifdef Debug
-  cout << "Mensagem criada: ";
+#ifdef DEBUG
+  static unordered_map<Code, string> codeToString = {
+      {Code::READ, "READ"},
+      {Code::WRITE, "WRITE"},
+  };
+  static unordered_map<Code, string> subcodeToString = {
+      {SubCode::MOVE_X_LEFT_RIGHT, "MOVE_X_LEFT_RIGHT"},
+      {SubCode::MOVE_Y_UP_DOWN, "MOVE_Y_UP_DOWN"},
+      {SubCode::PRESET_POSITIONS, "PRESET_POSITIONS"},
+      {SubCode::SET_PRESET_POSITION, "SET_PRESET_POSITION"},
+      {SubCode::CALIBRATE, "CALIBRATE"},
+      {SubCode::REG_SPEED_X, "REG_SPEED_X"},
+      {SubCode::REG_SPEED_Y, "REG_SPEED_Y"},
+      {SubCode::REG_POSITION_X, "REG_POSITION_X"},
+      {SubCode::REG_POSITION_Y, "REG_POSITION_Y"},
+      {SubCode::REG_TEMPERATURE, "REG_TEMPERATURE"},
+      {SubCode::REG_PRESSURE, "REG_PRESSURE"},
+      {SubCode::REG_MACHINE_STATE, "REG_MACHINE_STATE"},
+  };
+
+  cout << "Mensagem criada: \n"
+       << "Código: " << codeToString[code] << "\n"
+       << "Subcódigo: " << subcodeToString[subcode] << "\n"
+       << "Dados: " << (data.empty() ? "N/A" : "") << "\n";
+  for (uint8_t byte : data) {
+    cout << std::hex << std::setw(2) << std::setfill('0')
+         << static_cast<int>(byte) << " ";
+  }
+  cout << "\nMatrícula: ";
+  for (uint8_t byte : MATRICULA) {
+    cout << std::hex << std::setw(2) << std::setfill('0')
+         << static_cast<int>(byte) << " ";
+  }
+  std::cout << "\nCRC: " << std::hex << std::setw(2) << std::setfill('0')
+            << static_cast<int>(crc) << " "
+            << std::hex << std::setw(2) << std::setfill('0')
+            << static_cast<int>(crc >> 8) << "\n";
+  std::cout << "Payload: ";
   printHex(msg);
 #endif
 }
@@ -78,7 +114,7 @@ uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
 
     if (isValidCRC(answer.data(), answer.size())) {
       uart_.ensureClosed();
-#ifdef Debug
+#ifdef DEBUG
       std::cout << "Resposta recebida: ";
       printhex(answer);
 #endif
