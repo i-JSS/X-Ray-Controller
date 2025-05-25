@@ -117,7 +117,7 @@ uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
       uart_.ensureClosed();
 #ifdef DEBUG
       std::cout << "Resposta recebida: ";
-      printhex(answer);
+      printHex(answer);
 #endif
       return answer[2];
     } else {
