@@ -1,6 +1,7 @@
 #include "uartController.h"
 #include <cstdint>
 #include <fcntl.h>
+#include <optional>
 #include <span>
 #include <string>
 #include <sys/types.h>
@@ -28,14 +29,17 @@ bool UARTController::send(const span<uint8_t> data) {
 }
 
 ssize_t UARTController::read_into(span<uint8_t> buffer) {
-  return read(fd, buffer.data(), buffer.size());
+  return ::read(fd, buffer.data(), buffer.size());
 }
 
-ssize_t UARTController::read_into(vector<uint8_t> &buffer, ssize_t max) {
-  buffer.resize(max);
-  ssize_t bytesRead = read(fd, buffer.data(), max);
+optional<vector<uint8_t>> UARTController::read(ssize_t max) {
+  vector<uint8_t> buffer(max);
+  ssize_t bytesRead = ::read(fd, buffer.data(), max);
+  if (bytesRead < 0) {
+    return nullopt;
+  }
   buffer.resize(bytesRead);
-  return bytesRead;
+  return buffer;
 }
 
 void UARTController::ensureOpen() {

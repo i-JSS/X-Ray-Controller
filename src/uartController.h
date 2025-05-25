@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <fcntl.h>
 #include <iostream>
+#include <optional>
 #include <span>
 #include <string>
 #include <sys/types.h>
@@ -24,7 +25,7 @@ public:
 
   bool send(const span<uint8_t> data);
   ssize_t read_into(span<uint8_t> buffer);
-  ssize_t read_into(vector<uint8_t> &buffer, ssize_t max);
+  optional<vector<uint8_t>> read(ssize_t max);
 
 private:
   int fd;
