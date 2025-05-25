@@ -64,10 +64,10 @@ void ModbusController::createMsg(Code code, SubCode subcode,
       {SubCode::REG_MACHINE_STATE, "REG_MACHINE_STATE"},
   };
 
-  cout << "Mensagem criada: \n"
+  cout << "\n --- Mensagem criada ---- \n"
        << "Código: " << codeToString[code] << "\n"
        << "Subcódigo: " << subcodeToString[subcode] << "\n"
-       << "Dados: " << (data.empty() ? "N/A" : "") << "\n";
+       << "Dados: " << (data.empty() ? "N/A" : "");
   for (uint8_t byte : data) {
     cout << std::hex << std::setw(2) << std::setfill('0')
          << static_cast<int>(byte) << " ";
@@ -77,12 +77,11 @@ void ModbusController::createMsg(Code code, SubCode subcode,
     cout << std::hex << std::setw(2) << std::setfill('0')
          << static_cast<int>(byte) << " ";
   }
-  std::cout << "\nCRC: " << std::hex << std::setw(2) << std::setfill('0')
-            << static_cast<int>(crc) << " "
-            << std::hex << std::setw(2) << std::setfill('0')
-            << static_cast<int>(crc >> 8) << "\n";
+  std::cout << "\nCRC: ";
+  printHex({static_cast<uint8_t>(crc & 0xFF), static_cast<uint8_t>(crc >> 8)});
   std::cout << "Payload: ";
   printHex(msg);
+  std::cout << std::dec << std::endl;
 #endif
 }
 // NOTE: inlining aqui faria sentido
