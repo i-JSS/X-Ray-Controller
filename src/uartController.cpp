@@ -22,13 +22,19 @@ bool UARTController::send(const span<uint8_t> data) {
   bool result = (count > 0 && count != static_cast<int>(data.size()));
 
   fsync(fd);
-  usleep(100000);
+  usleep(50000);
 
   return result;
 }
 
 ssize_t UARTController::read_into(span<uint8_t> buffer) {
   return read(fd, buffer.data(), buffer.size());
+}
+
+ssize_t UARTController::read_into(vector<uint8_t> &buffer, ssize_t max) {
+  ssize_t bytesRead = read(fd, buffer.data(), max);
+  buffer.resize(bytesRead);
+  return bytesRead;
 }
 
 void UARTController::ensureOpen() {

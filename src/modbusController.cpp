@@ -9,45 +9,87 @@
 
 using namespace std;
 
-vector<uint8_t> ModbusController::createReadMsg(SubCode subcode) {
-  vector<uint8_t> msg = {ESP_ADDRESS, static_cast<uint8_t>(Code::READ),
-                         static_cast<uint8_t>(subcode), 0x01};
-  msg.insert(msg.end(), MATRICULA.begin(), MATRICULA.end());
+void ModbusController::createMsg(Code code, SubCode subcode,
+                                 vector<uint8_t> &msg,
+                                 span<uint8_t> data = {}) {
+  msg.clear();
+  // 1 byte ESP, 2 byes code e subcode, 1 byte tamanho, n bytes dados,
+  // matricula, 2 bytes crc
+  msg.reserve(4 * sizeof(uint8_t) + data.size() + MATRICULA.size() + 2);
+  msg = {ESP_ADDRESS, static_cast<uint8_t>(code),
+         static_cast<uint8_t>(subcode)};
+  if (data.empty()) {
+    msg.push_back(0x01);
+  } else {
+    msg.push_back(data.size());
+    msg.insert(msg.end(), data.begin(), data.end());
+    msg.insert(msg.end(), MATRICULA.begin(), MATRICULA.end());
+  }
 
   uint16_t crc = calculateCRC(msg.data(), msg.size());
-
   msg.push_back(crc);
   msg.push_back(crc >> 8);
+}
 
+// NOTE: inlining aqui faria sentido
+vector<uint8_t> ModbusController::createReadMsg(SubCode subcode) {
+  vector<uint8_t> msg;
+  createMsg(Code::READ, subcode, msg);
   return msg;
 }
 
-void ModbusController::requestRead(SubCode subcode) {
+vector<uint8_t> ModbusController::createWriteMsg(SubCode subcode,
+                                                 span<uint8_t> data) {
+  vector<uint8_t> msg;
+  createMsg(Code::WRITE, subcode, msg, data);
+  return msg;
+}
+
+static void printHex(const vector<uint8_t> &data) {
+  for (uint8_t byte : data)
+    printf("%02X ", byte);
+  printf("\n");
+}
+
+uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
+                                       span<uint8_t> data) {
+  vector<uint8_t> msg;
+  createMsg(code, subcode, msg, data);
   uart_.ensureOpen();
   while (true) {
-    // PERF: alocar a mensagem todas as vezes pode ser c
-    vector<uint8_t> msg = createReadMsg(subcode);
     bool res = uart_.send(msg);
     if (!res) {
       cerr << "Failed to send modbus message" << endl;
       continue;
     }
 
-    array<uint8_t, 256> buffer;
-    ssize_t len = uart_.read_into(buffer);
-    if (len < 0) {
+    vector<uint8_t> answer(256);
+    if (uart_.read_into(answer, 256) < 0) {
       cerr << "Failed to read modbus response" << endl;
       continue;
     }
 
-    vector<uint8_t> resposta(buffer.begin(), buffer.begin() + len);
-    if (isValidCRC(resposta.data(), resposta.size())) {
-      break;
+    if (isValidCRC(answer.data(), answer.size())) {
+      uart_.ensureClosed();
+#ifdef Debug
+      printhex(answer);
+#endif
+      return answer[2];
     } else {
       cerr << "Invalid checksum" << endl;
+      continue;
     }
   }
   uart_.ensureClosed();
+  return -1; // Não deve chegar aqui
+}
+
+uint32_t ModbusController::requestRead(SubCode subcode) {
+  return makeRequest(Code::READ, subcode);
+}
+
+uint32_t ModbusController::requestWrite(SubCode subcode, span<uint8_t> data) {
+  return makeRequest(Code::WRITE, subcode, data);
 }
 
 short ModbusController::calculateCRC(const unsigned char *commands,
