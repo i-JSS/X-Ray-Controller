@@ -100,6 +100,10 @@ uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
       uart_.send(msg);
       auto response = uart_.read(256);
 
+#ifdef DEBUG
+      cout << "Resposta recebida: ";
+      printHex(response);
+#endif
       if (!isValidCRC(response.data(), response.size()))
         throw std::runtime_error("Invalid CRC checksum");
 
