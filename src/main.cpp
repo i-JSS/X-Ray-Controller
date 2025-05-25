@@ -1,7 +1,5 @@
-#include "uart.h"
 #include <atomic>
 #include <csignal>
-#include <iostream>
 
 std::atomic<bool> running{true};
 void handler(int) { running.store(false); }
@@ -13,7 +11,7 @@ int main(void) {
   sigaction(SIGINT, &sa, nullptr);
 
   // Loop principal
-  UARTController uart;
+  // UARTController uart;
   while (true) {
 
     if (!running.load())
