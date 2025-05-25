@@ -182,6 +182,9 @@ short ModbusController::calculateCRC(const unsigned char *commands,
 bool ModbusController::isValidCRC(const unsigned char *buffer, int length) {
   if (length < 3)
     return false;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wparentheses"
   return calculateCRC(buffer, length - 2) == buffer[length - 2] |
          (buffer[length - 1] << 8);
+#pragma GCC diagnostic pop
 }
