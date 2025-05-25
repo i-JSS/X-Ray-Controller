@@ -3,20 +3,24 @@
 #include <array>
 #include <cstdint>
 #include <fcntl.h>
-#include <iomanip>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
+#ifdef DEBUG
+#include <iomanip>
 #include <unordered_map>
+#endif
 
 using namespace std;
 
+#ifdef DEBUG
 static void printHex(const vector<uint8_t> &data) {
   for (uint8_t byte : data)
     std::cout << std::hex << std::setw(2) << std::setfill('0')
               << static_cast<int>(byte) << " ";
   std::cout << std::dec << std::endl;
 }
+#endif
 
 void ModbusController::createMsg(Code code, SubCode subcode,
                                  vector<uint8_t> &msg,
