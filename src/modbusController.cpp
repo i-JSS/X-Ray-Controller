@@ -9,9 +9,16 @@
 
 using namespace std;
 
+static void printHex(const vector<uint8_t> &data) {
+  for (uint8_t byte : data)
+    printf("%02X ", byte);
+  printf("\n");
+}
+
 void ModbusController::createMsg(Code code, SubCode subcode,
                                  vector<uint8_t> &msg,
                                  span<uint8_t> data = {}) {
+  array<uint8_t, 4> MATRICULA = {8, 1, 5, 0};
   msg.clear();
   // 1 byte ESP, 2 byes code e subcode, 1 byte tamanho, n bytes dados,
   // matricula, 2 bytes crc
@@ -23,14 +30,13 @@ void ModbusController::createMsg(Code code, SubCode subcode,
   } else {
     msg.push_back(data.size());
     msg.insert(msg.end(), data.begin(), data.end());
-    msg.insert(msg.end(), MATRICULA.begin(), MATRICULA.end());
   }
 
+  msg.insert(msg.end(), MATRICULA.begin(), MATRICULA.end());
   uint16_t crc = calculateCRC(msg.data(), msg.size());
   msg.push_back(crc);
   msg.push_back(crc >> 8);
 }
-
 // NOTE: inlining aqui faria sentido
 vector<uint8_t> ModbusController::createReadMsg(SubCode subcode) {
   vector<uint8_t> msg;
@@ -43,12 +49,6 @@ vector<uint8_t> ModbusController::createWriteMsg(SubCode subcode,
   vector<uint8_t> msg;
   createMsg(Code::WRITE, subcode, msg, data);
   return msg;
-}
-
-static void printHex(const vector<uint8_t> &data) {
-  for (uint8_t byte : data)
-    printf("%02X ", byte);
-  printf("\n");
 }
 
 uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
