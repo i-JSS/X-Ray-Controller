@@ -19,7 +19,7 @@ void UARTController::ensureClosed() {
 
 bool UARTController::send(const span<uint8_t> data) {
   int count = write(fd, data.data(), data.size());
-  bool result = (count > 0 && count != static_cast<int>(data.size()));
+  bool result = (count > 0 && count == static_cast<int>(data.size()));
 
   fsync(fd);
   usleep(50000);
