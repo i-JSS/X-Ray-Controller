@@ -32,6 +32,7 @@ ssize_t UARTController::read_into(span<uint8_t> buffer) {
 }
 
 ssize_t UARTController::read_into(vector<uint8_t> &buffer, ssize_t max) {
+  buffer.resize(max);
   ssize_t bytesRead = read(fd, buffer.data(), max);
   buffer.resize(bytesRead);
   return bytesRead;

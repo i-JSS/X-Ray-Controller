@@ -101,7 +101,7 @@ uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
       continue;
     }
 
-    vector<uint8_t> answer(256);
+    vector<uint8_t> answer;
     if (uart_.read_into(answer, 256) < 0) {
       cerr << "Failed to read modbus response" << endl;
       continue;
