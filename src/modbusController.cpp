@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <fcntl.h>
+#include <iomanip>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
@@ -11,8 +12,9 @@ using namespace std;
 
 static void printHex(const vector<uint8_t> &data) {
   for (uint8_t byte : data)
-    printf("%02X ", byte);
-  printf("\n");
+    std::cout << std::hex << std::setw(2) << std::setfill('0')
+              << static_cast<int>(byte) << " ";
+  std::cout << std::dec << std::endl;
 }
 
 void ModbusController::createMsg(Code code, SubCode subcode,
@@ -36,6 +38,11 @@ void ModbusController::createMsg(Code code, SubCode subcode,
   uint16_t crc = calculateCRC(msg.data(), msg.size());
   msg.push_back(crc);
   msg.push_back(crc >> 8);
+
+#ifdef Debug
+  cout << "Mensagem criada: ";
+  printHex(msg);
+#endif
 }
 // NOTE: inlining aqui faria sentido
 vector<uint8_t> ModbusController::createReadMsg(SubCode subcode) {
@@ -72,6 +79,7 @@ uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
     if (isValidCRC(answer.data(), answer.size())) {
       uart_.ensureClosed();
 #ifdef Debug
+      std::cout << "Resposta recebida: ";
       printhex(answer);
 #endif
       return answer[2];
