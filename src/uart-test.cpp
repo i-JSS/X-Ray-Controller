@@ -16,19 +16,20 @@ void closeProgram(int signal) {
 }
 
 inline void printRequest(ModbusController::SubCode subcode, const std::string &prefix) {
-  std::cout << prefix << "Valor inteiro: " << modbus.requestRead(subcode) << std::endl;
+  std::cout << prefix << std::endl;
+  std::cout << "Valor inteiro: " << modbus.requestRead(subcode) << std::endl;
 }
 
 inline void printRequest(ModbusController::SubCode subcode, const std::string &prefix, float content) {
   auto data = reinterpret_cast<uint8_t *>(&content);
-  std::cout << prefix << "Valor inteiro: "
-            << modbus.requestWrite(subcode, std::span<uint8_t>(data, sizeof(float)))
+  std::cout << prefix << std::endl;
+  std::cout << "Valor inteiro: " << modbus.requestWrite(subcode, std::span<uint8_t>(data, sizeof(float)))
             << std::endl;
 }
 
 inline void printRequest(ModbusController::SubCode subcode, const std::string &prefix, uint8_t content) {
-  std::cout << prefix << "Valor inteiro: "
-            << modbus.requestWrite(subcode, std::span<uint8_t>(&content, 1))
+  std::cout << prefix << "Valor inteiro: " << std::endl;
+  std::cout << modbus.requestWrite(subcode, std::span<uint8_t>(&content, 1))
             << std::endl;
 }
 
