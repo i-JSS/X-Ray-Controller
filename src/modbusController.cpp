@@ -8,6 +8,7 @@
 #include <unistd.h>
 #ifdef DEBUG
 #include <iomanip>
+#include <sstream>
 #include <unordered_map>
 #endif
 
@@ -60,30 +61,28 @@ static void printMessageDebug(span<uint8_t> message) {
     data = message.subspan(4, dataLength); // Data starts after header
   }
 
-  string dataStr = data.empty() ? "N/A" : "";
-  if (!data.empty()) {
+  std::ostringstream dataStr;
+  if (data.empty()) {
+    dataStr << "N/A";
+  } else {
     for (uint8_t byte : data) {
-      dataStr += format("{:02x} ", byte);
+      dataStr << std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";
     }
   }
 
-  string payloadStr = "";
+  std::ostringstream payloadStr;
   for (uint8_t byte : message) {
-    payloadStr += format("{:02x} ", byte);
+    payloadStr << std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";
   }
 
-  cout << format("\n --- Mensagem criada ---- \n"
-                 "Código: {}\n"
-                 "Subcódigo: {}\n"
-                 "Dados: {}\n"
-                 "CRC: {:02x} {:02x}\n"
-                 "Payload: {}"
-                 "--- Fim da mensagem ----\n",
-                 codeToString[static_cast<Code>(code)],
-                 subcodeToString[static_cast<SubCode>(subcode)],
-                 dataStr,
-                 crc & 0xFF, crc >> 8,
-                 payloadStr);
+  std::cout << "\n --- Mensagem criada ---- \n"
+            << "Código: " << codeToString[static_cast<Code>(code)] << "\n"
+            << "Subcódigo: " << subcodeToString[static_cast<SubCode>(subcode)] << "\n"
+            << "Dados: " << dataStr.str() << "\n"
+            << "CRC: " << std::hex << std::setw(2) << std::setfill('0') << (crc & 0xFF) << " "
+            << std::setw(2) << std::setfill('0') << (crc >> 8) << "\n"
+            << "Payload: " << payloadStr.str()
+            << "--- Fim da mensagem ----\n";
 }
 #endif
 

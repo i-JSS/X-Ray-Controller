@@ -1,7 +1,6 @@
 #include "modbusController.h"
 #include <atomic>
 #include <csignal>
-#include <format>
 #include <iostream>
 
 std::atomic<bool> running{true};
@@ -18,20 +17,18 @@ int main() {
   while (running.load()) {
     auto state = modbus.readRegisters();
 
-    std::cout << std::format("Movendo:    LEFT={} RIGHT={} UP={} DOWN={}\n",
-                             state.isMoving[0],
-                             state.isMoving[1],
-                             state.isMoving[2],
-                             state.isMoving[3]);
+    std::cout << "Movendo:    LEFT=" << state.isMoving[0]
+              << " RIGHT=" << state.isMoving[1]
+              << " UP=" << state.isMoving[2]
+              << " DOWN=" << state.isMoving[3] << "\n";
 
-    std::cout << std::format("Preset:     P1={} P2={} P3={} P4={} | Setando={}\n",
-                             state.readingPreset[0],
-                             state.readingPreset[1],
-                             state.readingPreset[2],
-                             state.readingPreset[3],
-                             state.isSettingPreset);
+    std::cout << "Preset:     P1=" << state.readingPreset[0]
+              << " P2=" << state.readingPreset[1]
+              << " P3=" << state.readingPreset[2]
+              << " P4=" << state.readingPreset[3]
+              << " | Setando=" << state.isSettingPreset << "\n";
 
-    std::cout << std::format("Calibrando: {}\n\n", state.isCalibrating);
+    std::cout << "Calibrando: " << state.isCalibrating << "\n\n";
   }
 
   return 0;
