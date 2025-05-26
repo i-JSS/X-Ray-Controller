@@ -157,12 +157,16 @@ void ModbusController::write(SubCode espRegister, float value) {
 
   uint8_t *dataPtr = reinterpret_cast<uint8_t *>(&value);
   writeMessage.data.assign(dataPtr, dataPtr + sizeof(float));
+
+  makeRequest(writeMessage);
 }
 
 void ModbusController::write(SubCode espRegister, uint8_t value) {
   WriteMessage writeMessage;
   writeMessage.writeRegister = espRegister;
   writeMessage.data.push_back(value);
+
+  makeRequest(writeMessage);
 }
 
 short ModbusController::CRC16(short crc, char data) {
