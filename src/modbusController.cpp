@@ -125,6 +125,46 @@ vector<uint8_t> ModbusController::makeRequest(Message &message) {
   }
 }
 
+ModbusController::RegisterState ModbusController::readRegisters() {
+  RegisterState state;
+  ReadMessage readMessage;
+
+  // Read machine state
+  readMessage.readRegister = SubCode::MOVE_X_LEFT_RIGHT;
+  readMessage.registerCount = 5;
+  auto response = makeRequest(readMessage);
+  int offset = 3;
+
+  for (int i = offset; i < offset + 4; i++) {
+    state.isMoving[i - offset] = response[i];
+  }
+  offset += 4;
+
+  for (int i = offset; i < offset + 4; i++) {
+    state.readingPreset[i - offset] = response[i];
+  }
+  offset += 4;
+
+  state.isCalibrating = response[offset++];
+  state.isSettingPreset = response[offset++];
+
+  return state;
+}
+
+void ModbusController::write(SubCode espRegister, float value) {
+  WriteMessage writeMessage;
+  writeMessage.writeRegister = espRegister;
+
+  uint8_t *dataPtr = reinterpret_cast<uint8_t *>(&value);
+  writeMessage.data.assign(dataPtr, dataPtr + sizeof(float));
+}
+
+void ModbusController::write(SubCode espRegister, uint8_t value) {
+  WriteMessage writeMessage;
+  writeMessage.writeRegister = espRegister;
+  writeMessage.data.push_back(value);
+}
+
 short ModbusController::CRC16(short crc, char data) {
   const unsigned short tbl[256] = {
       0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241, 0xC601,
