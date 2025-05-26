@@ -44,8 +44,6 @@ public:
 private:
   uint32_t makeRequest(Code code, SubCode subcode, span<uint8_t> data = {});
   vector<uint8_t> createMsg(Code code, SubCode subcode, span<uint8_t> data);
-  vector<uint8_t> createReadMsg(SubCode subcode);
-  vector<uint8_t> createWriteMsg(SubCode subcode, span<uint8_t> data);
   UARTController uart_;
 
   static constexpr uint8_t ESP_ADDRESS = 0x01;

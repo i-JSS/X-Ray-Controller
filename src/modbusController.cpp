@@ -110,15 +110,6 @@ vector<uint8_t> ModbusController::createMsg(Code code, SubCode subcode,
   return msg;
 }
 
-vector<uint8_t> ModbusController::createReadMsg(SubCode subcode) {
-  return createMsg(Code::READ, subcode);
-}
-
-vector<uint8_t> ModbusController::createWriteMsg(SubCode subcode,
-                                                 span<uint8_t> data) {
-  return createMsg(Code::WRITE, subcode, data);
-}
-
 uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
                                        span<uint8_t> data) {
   vector<uint8_t> msg = createMsg(code, subcode, data);

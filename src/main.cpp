@@ -1,3 +1,4 @@
+#include "uartController.h"
 #include <atomic>
 #include <csignal>
 
