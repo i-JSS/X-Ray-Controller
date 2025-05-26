@@ -109,7 +109,7 @@ uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
 
       uart_.ensureClosed();
       return response[2];
-    } catch (const std::system_error &e) {
+    } catch (const std::exception &e) {
       cerr << "Erro ao fazer requisição: " << e.what() << endl;
       continue;
     }
