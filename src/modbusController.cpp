@@ -15,10 +15,11 @@ using namespace std;
 
 #ifdef DEBUG
 static void printHex(span<uint8_t> data) {
-  for (uint8_t byte : data)
-    std::cout << std::hex << std::setw(2) << std::setfill('0')
-              << static_cast<int>(byte) << " ";
-  std::cout << std::dec << std::endl;
+  string hexStr = "";
+  for (uint8_t byte : data) {
+    hexStr += format("{:02x} ", byte);
+  }
+  cout << hexStr << endl;
 }
 
 static unordered_map<Code, string> codeToString = {
