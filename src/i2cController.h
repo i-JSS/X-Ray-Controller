@@ -8,23 +8,18 @@
 
 class i2cController {
 public:
-    i2cController(const std::string& i2c_device, const uint8_t address)
-        : fd(-1), device_path(i2c_device), i2c_address(address) {
-        std::memset(&dev, 0, sizeof(dev));
-    }
+    i2cController(const std::string& i2cDevice, const uint8_t address)
+        : fd(-1), devicePath(i2cDevice), i2cAddress(address) {}
 
     void ensureOpen();
     void ensureClose();
-
-    int8_t readReg(uint8_t reg_addr, uint8_t *data, uint32_t len);
-    int8_t writeReg(uint8_t reg_addr, const uint8_t *data, uint32_t len);
-
-    bme280_dev dev;
+    bool read(int8_t address, char *data, int size, int num1, int num2);
+    bool write(uint8_t reg, uint8_t value);
 
 private:
     int fd;
-    std::string device_path;
-    uint8_t i2c_address;
+    std::string devicePath;
+    uint8_t i2cAddress;
 };
 
 #endif // I2CCONTROLLER_H

@@ -6,31 +6,33 @@
 #include <cstring>
 #include <iostream>
 
-int8_t i2cController::readReg(const uint8_t reg_addr, uint8_t *data, const uint32_t len) {
-    if (write(fd, &reg_addr, 1) != 1)
-        return BME280_E_COMM_FAIL;
-    if (read(fd, data, len) != static_cast<int>(len))
-        return BME280_E_COMM_FAIL;
-    return BME280_OK;
+bool read(int8_t address, char *data, int size, int num1, int num2) {
+    char reg[num1] = {address};
+    write(fd, reg, num2);
+    if (read(fd, data, size) != size){
+        std::cerr << "Falha ao ler o endereço: " << address << std::endl;
+        return false;
+    }
+    return true;
 }
 
-int8_t i2cController::writeReg(const uint8_t reg_addr, const uint8_t *data, const uint32_t len) {
-    uint8_t buffer[len + 1];
-    buffer[0] = reg_addr;
-    std::memcpy(buffer + 1, data, len);
-    if (write(fd, buffer, len + 1) != static_cast<int>(len + 1))
-        return BME280_E_COMM_FAIL;
-    return BME280_OK;
+bool i2cController::write(uint8_t reg, uint8_t value) {
+    char buffer[2] = { (char)reg, (char)value };
+    if (write(fd, buffer, 2) != 2) {
+        std::cerr << "Erro ao escrever no registrador 0x" << std::hex << (int)reg << std::dec << std::endl;
+        return false;
+    }
+    return true;
 }
 
 void i2cController::ensureOpen() {
-    fd = open(device_path.c_str(), O_RDWR);
+    fd = open(devicePath.c_str(), O_RDWR);
     if (fd < 0) {
-        std::cerr << "Erro abrindo I2C: " << device_path << "\n";
+        std::cerr << "Erro abrindo I2C: " << devicePath << "\n";
         close(fd);
     }
 
-    if (ioctl(fd, I2C_SLAVE, i2c_address) < 0) {
+    if (ioctl(fd, I2C_SLAVE, i2cAddress) < 0) {
         std::cerr << "Erro configurando I2C_SLAVE\n";
         close(fd);
     }
