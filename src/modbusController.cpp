@@ -163,10 +163,10 @@ void ModbusController::write(SubCode espRegister, float value) {
   makeRequest(writeMessage);
 }
 
-void ModbusController::write(SubCode espRegister, uint8_t value) {
+void ModbusController::write(SubCode espRegister, byte value) {
   WriteMessage writeMessage;
   writeMessage.writeRegister = espRegister;
-  writeMessage.data.push_back(value);
+  writeMessage.data.push_back(static_cast<uint8_t>(value));
 
   makeRequest(writeMessage);
 }

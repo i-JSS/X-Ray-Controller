@@ -32,13 +32,7 @@ public:
     REG_PRESSURE = 0x19,
     REG_MACHINE_STATE = 0x1D
   };
-
-  enum class Directions : int {
-    LEFT = 0x00,
-    RIGHT = 0x01,
-    UP = 0x02,
-    DOWN = 0x03
-  };
+  ;
 
   struct RegisterState {
     array<bool, 4> isMoving = {0, 0, 0, 0};
@@ -52,7 +46,7 @@ public:
 
   [[nodiscard]] RegisterState readRegisters();
   void write(SubCode espRegister, float value);
-  void write(SubCode espRegister, uint8_t value);
+  void write(SubCode espRegister, byte value);
 
   void ensureClosed() { uart_.ensureClosed(); }
 
