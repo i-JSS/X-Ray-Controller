@@ -3,8 +3,11 @@
 #include <csignal>
 #include <iostream>
 
-std::atomic<bool> running{true};
-void handler(int) { running.store(false); }
+ModbusController modbus("/dev/ttyUSB0", B115200);
+void handler(int) {
+  modbus.ensureClosed();
+  exit(0);
+}
 
 int main() {
   struct sigaction sa;
@@ -12,9 +15,7 @@ int main() {
   sigfillset(&sa.sa_mask);
   sigaction(SIGINT, &sa, nullptr);
 
-  ModbusController modbus("/dev/ttyUSB0", B115200);
-
-  while (running.load()) {
+  while (true) {
     auto state = modbus.readRegisters();
 
     std::cout << "Movendo:    LEFT=" << state.isMoving[0]
