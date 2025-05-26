@@ -14,11 +14,75 @@
 using namespace std;
 
 #ifdef DEBUG
-static void printHex(const vector<uint8_t> &data) {
+static void printHex(span<uint8_t> data) {
   for (uint8_t byte : data)
     std::cout << std::hex << std::setw(2) << std::setfill('0')
               << static_cast<int>(byte) << " ";
   std::cout << std::dec << std::endl;
+}
+
+static unordered_map<Code, string> codeToString = {
+    {Code::READ, "READ"},
+    {Code::WRITE, "WRITE"},
+};
+static unordered_map<SubCode, string> subcodeToString = {
+    {SubCode::MOVE_X_LEFT_RIGHT, "MOVE_X_LEFT_RIGHT"},
+    {SubCode::MOVE_Y_UP_DOWN, "MOVE_Y_UP_DOWN"},
+    {SubCode::PRESET_POSITIONS, "PRESET_POSITIONS"},
+    {SubCode::SET_PRESET_POSITION, "SET_PRESET_POSITION"},
+    {SubCode::CALIBRATE, "CALIBRATE"},
+    {SubCode::REG_SPEED_X, "REG_SPEED_X"},
+    {SubCode::REG_SPEED_Y, "REG_SPEED_Y"},
+    {SubCode::REG_POSITION_X, "REG_POSITION_X"},
+    {SubCode::REG_POSITION_Y, "REG_POSITION_Y"},
+    {SubCode::REG_TEMPERATURE, "REG_TEMPERATURE"},
+    {SubCode::REG_PRESSURE, "REG_PRESSURE"},
+    {SubCode::REG_MACHINE_STATE, "REG_MACHINE_STATE"},
+};
+
+static void printMessageDebug(span<uint8_t> message) {
+  uint8_t espAddress = message[0];
+  uint8_t code = message[1];
+  uint8_t subcode = message[2];
+  uint8_t dataLength = message[3];
+
+  int dataOffset = 4; // Skip header 4 bytes (address, code, subcode, length)
+  if (code == static_cast<uint8_t>(Code::WRITE)) {
+    dataOffset += dataLength; // Skip actual data bytes
+  }
+  dataOffset += 4; // MATRICULA 4 bytes
+
+  uint16_t crc = (message[dataOffset] | (message[dataOffset + 1] << 8));
+
+  span<uint8_t> data;
+  if (code == static_cast<uint8_t>(Code::WRITE) && dataLength > 0) {
+    data = message.subspan(4, dataLength); // Data starts after header
+  }
+
+  string dataStr = data.empty() ? "N/A" : "";
+  if (!data.empty()) {
+    for (uint8_t byte : data) {
+      dataStr += format("{:02x} ", byte);
+    }
+  }
+
+  string payloadStr = "";
+  for (uint8_t byte : message) {
+    payloadStr += format("{:02x} ", byte);
+  }
+
+  cout << format("\n --- Mensagem criada ---- \n"
+                 "Código: {}\n"
+                 "Subcódigo: {}\n"
+                 "Dados: {}\n"
+                 "CRC: {:02x} {:02x}\n"
+                 "Payload: {}"
+                 "--- Fim da mensagem ----\n",
+                 codeToString[static_cast<Code>(code)],
+                 subcodeToString[static_cast<SubCode>(subcode)],
+                 dataStr,
+                 crc & 0xFF, crc >> 8,
+                 payloadStr);
 }
 #endif
 
@@ -40,43 +104,7 @@ vector<uint8_t> ModbusController::createMsg(Code code, SubCode subcode,
   msg.push_back(static_cast<uint8_t>(crc >> 8));
 
 #ifdef DEBUG
-  static unordered_map<Code, string> codeToString = {
-      {Code::READ, "READ"},
-      {Code::WRITE, "WRITE"},
-  };
-  static unordered_map<SubCode, string> subcodeToString = {
-      {SubCode::MOVE_X_LEFT_RIGHT, "MOVE_X_LEFT_RIGHT"},
-      {SubCode::MOVE_Y_UP_DOWN, "MOVE_Y_UP_DOWN"},
-      {SubCode::PRESET_POSITIONS, "PRESET_POSITIONS"},
-      {SubCode::SET_PRESET_POSITION, "SET_PRESET_POSITION"},
-      {SubCode::CALIBRATE, "CALIBRATE"},
-      {SubCode::REG_SPEED_X, "REG_SPEED_X"},
-      {SubCode::REG_SPEED_Y, "REG_SPEED_Y"},
-      {SubCode::REG_POSITION_X, "REG_POSITION_X"},
-      {SubCode::REG_POSITION_Y, "REG_POSITION_Y"},
-      {SubCode::REG_TEMPERATURE, "REG_TEMPERATURE"},
-      {SubCode::REG_PRESSURE, "REG_PRESSURE"},
-      {SubCode::REG_MACHINE_STATE, "REG_MACHINE_STATE"},
-  };
-
-  cout << "\n --- Mensagem criada ---- \n"
-       << "Código: " << codeToString[code] << "\n"
-       << "Subcódigo: " << subcodeToString[subcode] << "\n"
-       << "Dados: " << (data.empty() ? "N/A" : "");
-  for (uint8_t byte : data) {
-    cout << std::hex << std::setw(2) << std::setfill('0')
-         << static_cast<int>(byte) << " ";
-  }
-  cout << "\nMatrícula: ";
-  for (uint8_t byte : MATRICULA) {
-    cout << std::hex << std::setw(2) << std::setfill('0')
-         << static_cast<int>(byte) << " ";
-  }
-  std::cout << "\nCRC: ";
-  printHex({static_cast<uint8_t>(crc & 0xFF), static_cast<uint8_t>(crc >> 8)});
-  std::cout << "Payload: ";
-  printHex(msg);
-  std::cout << "--- Fim da mensagem ----\n";
+  printMessageDebug(msg);
 #endif
   return msg;
 }
