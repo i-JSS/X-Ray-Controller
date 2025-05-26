@@ -105,7 +105,9 @@ vector<uint8_t> ModbusController::makeRequest(Message &message) {
   while (true) {
     try {
       uart_.send(finalizeMessage(message));
-      auto response = uart_.read(256);
+      // NOTE: dá pra pegar o tamanho esperado da resposta exato
+      // e dá pra conferir se o tamanho bate
+      auto response = uart_.read(256); // +2 for CRC
 
       uart_.sync();
 

@@ -68,6 +68,7 @@ private:
 
   struct Message {
     virtual vector<uint8_t> build() const = 0;
+    virtual uint8_t getQtd() const = 0;
   };
   struct ReadMessage : Message {
     SubCode readRegister;
@@ -79,6 +80,8 @@ private:
               static_cast<uint8_t>(readRegister),
               registerCount};
     };
+
+    uint8_t getQtd() const override { return registerCount; }
   };
   struct WriteMessage : Message {
     SubCode writeRegister;
@@ -92,6 +95,8 @@ private:
       msg.insert(msg.end(), data.begin(), data.end());
       return msg;
     }
+
+    uint8_t getQtd() const override { return static_cast<uint8_t>(data.size()); }
   };
 
   vector<uint8_t> finalizeMessage(Message &message); // Write into Register
