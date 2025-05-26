@@ -13,5 +13,3 @@ set(BUILD_DIR ${CMAKE_BINARY_DIR})
 
 add_executable(main ${SRC_DIR}/main.cpp ${SRC_DIR}/uartController.cpp ${SRC_DIR}/modbusController.cpp)
 target_link_libraries(main ${WIRINGPI_LIB})
-
-target_link_libraries(uart-test ${WIRINGPI_LIB})
