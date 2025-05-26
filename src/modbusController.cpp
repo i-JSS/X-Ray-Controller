@@ -87,38 +87,27 @@ static void printMessageDebug(span<uint8_t> message) {
 }
 #endif
 
-vector<uint8_t> ModbusController::createMsg(Code code, SubCode subcode,
-                                            span<uint8_t> data = {}) {
-
-  vector<uint8_t> msg = {
-      ESP_ADDRESS,
-      static_cast<uint8_t>(code),
-      static_cast<uint8_t>(subcode),
-      data.empty() ? static_cast<uint8_t>(1) : static_cast<uint8_t>(data.size())};
-  if (!data.empty())
-    msg.insert(msg.end(), data.begin(), data.end());
-
+vector<uint8_t> ModbusController::finalizeMessage(Message &message) {
+  vector<uint8_t> msg = message.build();
   msg.insert(msg.end(), MATRICULA.begin(), MATRICULA.end());
 
   uint16_t crc = calculateCRC(msg.data(), msg.size());
   msg.push_back(static_cast<uint8_t>(crc & 0xFF));
   msg.push_back(static_cast<uint8_t>(crc >> 8));
-
 #ifdef DEBUG
   printMessageDebug(msg);
 #endif
   return msg;
 }
 
-uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
-                                       span<uint8_t> data) {
-  vector<uint8_t> msg = createMsg(code, subcode, data);
+vector<uint8_t> ModbusController::makeRequest(Message &message) {
   uart_.ensureOpen();
-
   while (true) {
     try {
-      uart_.send(msg);
+      uart_.send(finalizeMessage(message));
       auto response = uart_.read(256);
+
+      uart_.sync();
 
 #ifdef DEBUG
       cout << "Resposta recebida: ";
@@ -128,20 +117,12 @@ uint32_t ModbusController::makeRequest(Code code, SubCode subcode,
         throw std::runtime_error("Invalid CRC checksum");
 
       uart_.ensureClosed();
-      return response[2];
+      return response;
     } catch (const std::exception &e) {
       cerr << "Erro ao fazer requisição: " << e.what() << endl;
       continue;
     }
   }
-}
-
-uint32_t ModbusController::requestRead(SubCode subcode) {
-  return makeRequest(Code::READ, subcode);
-}
-
-uint32_t ModbusController::requestWrite(SubCode subcode, span<uint8_t> data) {
-  return makeRequest(Code::WRITE, subcode, data);
 }
 
 short ModbusController::CRC16(short crc, char data) {

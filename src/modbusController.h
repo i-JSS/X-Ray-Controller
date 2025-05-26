@@ -33,17 +33,30 @@ public:
     REG_MACHINE_STATE = 0x1D
   };
 
+  enum class Directions : int {
+    LEFT = 0x00,
+    RIGHT = 0x01,
+    UP = 0x02,
+    DOWN = 0x03
+  };
+
+  struct RegisterState {
+    array<bool, 4> isMoving = {0, 0, 0, 0};
+    array<bool, 4> readingPreset = {0, 0, 0, 0};
+    bool isCalibrating = false;
+    bool isSettingPreset = false;
+  };
+
   explicit ModbusController(const string &portName, const speed_t baudRate)
       : uart_(portName, baudRate) {}
 
-  [[nodiscard]] uint32_t requestRead(SubCode subcode);
-  [[nodiscard]] uint32_t requestWrite(SubCode subcode, span<uint8_t> data);
+  [[nodiscard]] RegisterState readRegisters();
+  void write(SubCode espRegister, float value);
+  void write(SubCode espRegister, uint8_t value);
 
-  inline void ensureClosed() { uart_.ensureClosed(); }
+  void ensureClosed() { uart_.ensureClosed(); }
 
 private:
-  uint32_t makeRequest(Code code, SubCode subcode, span<uint8_t> data = {});
-  vector<uint8_t> createMsg(Code code, SubCode subcode, span<uint8_t> data);
   UARTController uart_;
 
   static constexpr uint8_t ESP_ADDRESS = 0x01;
@@ -52,4 +65,35 @@ private:
   short CRC16(short crc, char data);
   short calculateCRC(const unsigned char *commands, const int size);
   bool isValidCRC(const unsigned char *buffer, int length);
+
+  struct Message {
+    virtual vector<uint8_t> build() const = 0;
+  };
+  struct ReadMessage : Message {
+    SubCode readRegister;
+    uint8_t registerCount;
+
+    vector<uint8_t> build() const override {
+      return {ESP_ADDRESS,
+              static_cast<uint8_t>(Code::READ),
+              static_cast<uint8_t>(readRegister),
+              registerCount};
+    };
+  };
+  struct WriteMessage : Message {
+    SubCode writeRegister;
+    vector<uint8_t> data;
+
+    vector<uint8_t> build() const override {
+      vector<uint8_t> msg = {ESP_ADDRESS,
+                             static_cast<uint8_t>(Code::WRITE),
+                             static_cast<uint8_t>(writeRegister),
+                             static_cast<uint8_t>(data.size())};
+      msg.insert(msg.end(), data.begin(), data.end());
+      return msg;
+    }
+  };
+
+  vector<uint8_t> finalizeMessage(Message &message); // Write into Register
+  vector<uint8_t> makeRequest(Message &message);
 };
