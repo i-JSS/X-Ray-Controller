@@ -15,31 +15,31 @@
 using namespace std;
 
 #ifdef DEBUG
-static void printHex(span<uint8_t> data) {
-  string hexStr = "";
+static void printHex(std::span<uint8_t> data) {
+  std::ostringstream oss;
   for (uint8_t byte : data) {
-    hexStr += format("{:02x} ", byte);
+    oss << std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";
   }
-  cout << hexStr << endl;
+  std::cout << oss.str() << std::endl;
 }
 
-static unordered_map<Code, string> codeToString = {
-    {Code::READ, "READ"},
-    {Code::WRITE, "WRITE"},
+static unordered_map<ModbusController::Code, string> codeToString = {
+    {ModbusController::Code::READ, "READ"},
+    {ModbusController::Code::WRITE, "WRITE"},
 };
-static unordered_map<SubCode, string> subcodeToString = {
-    {SubCode::MOVE_X_LEFT_RIGHT, "MOVE_X_LEFT_RIGHT"},
-    {SubCode::MOVE_Y_UP_DOWN, "MOVE_Y_UP_DOWN"},
-    {SubCode::PRESET_POSITIONS, "PRESET_POSITIONS"},
-    {SubCode::SET_PRESET_POSITION, "SET_PRESET_POSITION"},
-    {SubCode::CALIBRATE, "CALIBRATE"},
-    {SubCode::REG_SPEED_X, "REG_SPEED_X"},
-    {SubCode::REG_SPEED_Y, "REG_SPEED_Y"},
-    {SubCode::REG_POSITION_X, "REG_POSITION_X"},
-    {SubCode::REG_POSITION_Y, "REG_POSITION_Y"},
-    {SubCode::REG_TEMPERATURE, "REG_TEMPERATURE"},
-    {SubCode::REG_PRESSURE, "REG_PRESSURE"},
-    {SubCode::REG_MACHINE_STATE, "REG_MACHINE_STATE"},
+static unordered_map<ModbusController::SubCode, string> subcodeToString = {
+    {ModbusController::SubCode::MOVE_X_LEFT_RIGHT, "MOVE_X_LEFT_RIGHT"},
+    {ModbusController::SubCode::MOVE_Y_UP_DOWN, "MOVE_Y_UP_DOWN"},
+    {ModbusController::SubCode::PRESET_POSITIONS, "PRESET_POSITIONS"},
+    {ModbusController::SubCode::SET_PRESET_POSITION, "SET_PRESET_POSITION"},
+    {ModbusController::SubCode::CALIBRATE, "CALIBRATE"},
+    {ModbusController::SubCode::REG_SPEED_X, "REG_SPEED_X"},
+    {ModbusController::SubCode::REG_SPEED_Y, "REG_SPEED_Y"},
+    {ModbusController::SubCode::REG_POSITION_X, "REG_POSITION_X"},
+    {ModbusController::SubCode::REG_POSITION_Y, "REG_POSITION_Y"},
+    {ModbusController::SubCode::REG_TEMPERATURE, "REG_TEMPERATURE"},
+    {ModbusController::SubCode::REG_PRESSURE, "REG_PRESSURE"},
+    {ModbusController::SubCode::REG_MACHINE_STATE, "REG_MACHINE_STATE"},
 };
 
 static void printMessageDebug(span<uint8_t> message) {
@@ -84,7 +84,7 @@ static void printMessageDebug(span<uint8_t> message) {
             << "Payload: " << payloadStr.str()
             << "--- Fim da mensagem ----\n";
 }
-#endif
+#endif // DEBUG
 
 vector<uint8_t> ModbusController::finalizeMessage(Message &message) {
   vector<uint8_t> msg = message.build();
