@@ -6,15 +6,13 @@
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
-#ifdef DEBUG
-#include <iomanip>
-#include <sstream>
-#include <unordered_map>
-#endif
 
 using namespace std;
 
 #ifdef DEBUG
+#include <iomanip>
+#include <sstream>
+#include <unordered_map>
 static void printHex(std::span<uint8_t> data) {
   std::ostringstream oss;
   for (uint8_t byte : data) {
@@ -49,7 +47,7 @@ static void printMessageDebug(span<uint8_t> message) {
   uint8_t dataLength = message[3];
 
   int dataOffset = 4; // Skip header 4 bytes (address, code, subcode, length)
-  if (code == static_cast<uint8_t>(Code::WRITE)) {
+  if (code == static_cast<uint8_t>(ModbusController::Code::WRITE)) {
     dataOffset += dataLength; // Skip actual data bytes
   }
   dataOffset += 4; // MATRICULA 4 bytes
@@ -57,7 +55,7 @@ static void printMessageDebug(span<uint8_t> message) {
   uint16_t crc = (message[dataOffset] | (message[dataOffset + 1] << 8));
 
   span<uint8_t> data;
-  if (code == static_cast<uint8_t>(Code::WRITE) && dataLength > 0) {
+  if (code == static_cast<uint8_t>(ModbusController::Code::WRITE) && dataLength > 0) {
     data = message.subspan(4, dataLength); // Data starts after header
   }
 
@@ -76,15 +74,15 @@ static void printMessageDebug(span<uint8_t> message) {
   }
 
   std::cout << "\n --- Mensagem criada ---- \n"
-            << "Código: " << codeToString[static_cast<Code>(code)] << "\n"
-            << "Subcódigo: " << subcodeToString[static_cast<SubCode>(subcode)] << "\n"
+            << "Código: " << codeToString[static_cast<ModbusController::Code>(code)] << "\n"
+            << "Subcódigo: " << subcodeToString[static_cast<ModbusController::SubCode>(subcode)] << "\n"
             << "Dados: " << dataStr.str() << "\n"
             << "CRC: " << std::hex << std::setw(2) << std::setfill('0') << (crc & 0xFF) << " "
             << std::setw(2) << std::setfill('0') << (crc >> 8) << "\n"
             << "Payload: " << payloadStr.str()
             << "--- Fim da mensagem ----\n";
 }
-#endif // DEBUG
+#endif
 
 vector<uint8_t> ModbusController::finalizeMessage(Message &message) {
   vector<uint8_t> msg = message.build();
