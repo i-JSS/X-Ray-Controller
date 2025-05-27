@@ -58,15 +58,21 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   auto response = makeRequest(readMessage);
   int offset = 3;
 
-  for (int i = offset; i < offset + 4; i++) {
-    state.isMoving[i - offset] = response[i];
-  }
-  offset += 4;
+  state.isMoving[0] = response[offset] & 0x01;
+  state.isMoving[1] = response[offset] & 0x02;
 
-  for (int i = offset; i < offset + 4; i++) {
-    state.readingPreset[i - offset] = response[i];
-  }
-  offset += 4;
+  // Próximo
+  offset++;
+
+  state.isMoving[2] = response[offset] & 0x01;
+  state.isMoving[3] = response[offset] & 0x02;
+
+  offset++;
+
+  state.readingPreset[0] = response[offset] & 0x01;
+  state.readingPreset[1] = response[offset] & 0x02;
+  state.readingPreset[2] = response[offset] & 0x04;
+  state.readingPreset[3] = response[offset] & 0x08;
 
   state.isCalibrating = response[offset++];
   state.isSettingPreset = response[offset++];
@@ -74,6 +80,7 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   return state;
 }
 
+// Escrever fora da região de memória dá erro
 void ModbusController::write(SubCode espRegister, float value) {
   WriteMessage writeMessage;
   writeMessage.writeRegister = espRegister;
