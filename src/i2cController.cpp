@@ -6,35 +6,28 @@
 #include <cstring>
 #include <iostream>
 
-bool read(int8_t address, char *data, int size, int num1, int num2) {
-    char reg[num1] = {address};
-    write(fd, reg, num2);
-    if (read(fd, data, size) != size){
-        std::cerr << "Falha ao ler o endereço: " << address << std::endl;
-        return false;
-    }
-    return true;
+void i2cController::read(int8_t address, char *data, int size, int n) {
+    char reg[n];
+    reg[0] = address;
+	write(reg, n);
+    if (::read(fd, data, size) != size)
+		throw std::runtime_error("Failed to read from i2c device");
 }
 
-bool i2cController::write(uint8_t reg, uint8_t value) {
-    char buffer[2] = { (char)reg, (char)value };
-    if (write(fd, buffer, 2) != 2) {
-        std::cerr << "Erro ao escrever no registrador 0x" << std::hex << (int)reg << std::dec << std::endl;
-        return false;
-    }
-    return true;
+void i2cController::write(char *data, int size) {
+    if (::write(fd, data, size) != size)
+		throw std::runtime_error("Failed to write to i2c device");
 }
 
 void i2cController::ensureOpen() {
     fd = open(devicePath.c_str(), O_RDWR);
     if (fd < 0) {
-        std::cerr << "Erro abrindo I2C: " << devicePath << "\n";
-        close(fd);
+		close(fd);
+		throw std::runtime_error("Failed to open i2c device");
     }
-
     if (ioctl(fd, I2C_SLAVE, i2cAddress) < 0) {
-        std::cerr << "Erro configurando I2C_SLAVE\n";
-        close(fd);
+		close(fd);
+		throw std::runtime_error("Failed to config I2C_SLAVE");
     }
 }
 

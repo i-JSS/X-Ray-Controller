@@ -6,13 +6,18 @@
 
 using namespace std;
 
+struct bmp280Data {
+	float temperature;
+	float pressure;
+};
+
 class bmp280Controller {
 public:
     bmp280Controller();
 
     void initialize();
     void close();
-    array<float, 2> readData();
+    bmp280Data readData();
 
 private:
     i2cController i2c;
@@ -20,8 +25,8 @@ private:
     long t_fine;
     void configure();
     array<int, 12> coefficient();
-    float temperature(char *data);
-    float pressure(char *data);
+    float getTemperature(char *data);
+    float getPressure(char *data);
 };
 
 #endif //BMP280CONTROLLER_H

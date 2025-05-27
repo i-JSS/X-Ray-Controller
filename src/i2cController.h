@@ -1,7 +1,6 @@
 #ifndef I2CCONTROLLER_H
 #define I2CCONTROLLER_H
 
-#include "bme280.h"
 #include <string>
 #include <cstring>
 #include <cstdint>
@@ -13,8 +12,8 @@ public:
 
     void ensureOpen();
     void ensureClose();
-    bool read(int8_t address, char *data, int size, int num1, int num2);
-    bool write(uint8_t reg, uint8_t value);
+    void read(int8_t address, char *data, int size, int n);
+    void write(char *data, int size);
 
 private:
     int fd;
