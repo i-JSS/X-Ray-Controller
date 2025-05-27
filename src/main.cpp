@@ -1,23 +1,39 @@
-#include <atomic>
+#include "modbusController.h"
 #include <csignal>
+#include <iostream>
 
-std::atomic<bool> running{true};
-void handler(int) { running.store(false); }
+ModbusController modbus("/dev/serial0", B115200);
+void handler(int) {
+  modbus.ensureClosed();
+  exit(0);
+}
 
-int main(void) {
+int main() {
   struct sigaction sa;
   sa.sa_handler = handler;
   sigfillset(&sa.sa_mask);
   sigaction(SIGINT, &sa, nullptr);
 
-  // Loop principal
-  // UARTController uart;
   while (true) {
+    auto state = modbus.readRegisters();
 
-    if (!running.load())
-      break;
+    std::cout << "\033[3A";
+    std::cout << "\033[2K\r";
+    std::cout << "Movendo:    LEFT=" << state.isMoving[0]
+              << " RIGHT=" << state.isMoving[1]
+              << " UP=" << state.isMoving[2]
+              << " DOWN=" << state.isMoving[3] << "\n";
+
+    std::cout << "\033[2K\r";
+    std::cout << "Preset:     P1=" << state.readingPreset[0]
+              << " P2=" << state.readingPreset[1]
+              << " P3=" << state.readingPreset[2]
+              << " P4=" << state.readingPreset[3]
+              << " | Setando=" << state.isSettingPreset << "\n";
+
+    std::cout << "\033[2K\r";
+    std::cout << "Calibrando: " << state.isCalibrating << "\n";
   }
 
-  // Destrutores cuidam de fechar e parar o sistema graciosamente
   return 0;
 }

@@ -24,8 +24,11 @@ public:
   void ensureClosed();
 
   void send(const span<uint8_t> data);
+  void send(const vector<uint8_t> &data);
   void read_into(span<uint8_t> buffer);
   vector<uint8_t> read(ssize_t max);
+
+  void sync();
 
 private:
   int fd;
