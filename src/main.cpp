@@ -3,7 +3,7 @@
 #include <csignal>
 #include <iostream>
 
-ModbusController modbus("/dev/ttyUSB0", B115200);
+ModbusController modbus("/dev/serial0", B115200);
 void handler(int) {
   modbus.ensureClosed();
   exit(0);
