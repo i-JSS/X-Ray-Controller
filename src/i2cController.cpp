@@ -4,11 +4,12 @@
 #include <stdexcept>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <vector>
 
 void i2cController::read(int8_t address, char *data, int size, int n) {
-  char reg[n];
+  std::vector<char> reg(n);
   reg[0] = address;
-  write(reg, n);
+  write(reg.data(), n);
   if (::read(fd, data, size) != size)
     throw std::runtime_error("Failed to read from i2c device");
 }
