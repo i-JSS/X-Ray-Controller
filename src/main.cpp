@@ -1,5 +1,4 @@
 #include "modbusController.h"
-#include <atomic>
 #include <csignal>
 #include <iostream>
 
