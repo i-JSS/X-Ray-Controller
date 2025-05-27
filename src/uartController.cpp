@@ -1,13 +1,14 @@
 #include "uartController.h"
 #include <cstdint>
 #include <fcntl.h>
-#include <optional>
 #include <span>
 #include <string>
 #include <sys/types.h>
 #include <system_error>
 #include <termios.h>
 #include <unistd.h>
+
+constexpr int UART_POLLING_INTERVAL = 50000; // 50 ms
 
 using namespace std;
 
@@ -20,7 +21,7 @@ void UARTController::ensureClosed() {
 
 void UARTController::sync() {
   fsync(fd);
-  usleep(50000);
+  usleep(UART_POLLING_INTERVAL);
 }
 
 void UARTController::send(const span<uint8_t> data) {
