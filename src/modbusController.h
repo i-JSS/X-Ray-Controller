@@ -60,7 +60,7 @@ private:
                              static_cast<uint8_t>(Code::READ),
                              static_cast<uint8_t>(readRegister),
                              registerCount};
-      addPostfix(*this, msg);
+      addPostfix(msg);
       return msg;
     };
 
@@ -76,7 +76,7 @@ private:
                              static_cast<uint8_t>(writeRegister),
                              static_cast<uint8_t>(data.size())};
       msg.insert(msg.end(), data.begin(), data.end());
-      addPostfix(*this, msg);
+      addPostfix(msg);
       return msg;
     }
 
@@ -90,7 +90,7 @@ private:
 
   vector<uint8_t> makeRequest(Message &message);
 
-  static void addPostfix(const Message &message, vector<uint8_t> &buffer) {
+  static void addPostfix(vector<uint8_t> &buffer) {
     buffer.insert(buffer.end(), MATRICULA.begin(), MATRICULA.end());
 
     uint16_t crc = calculateCRC(buffer.data(), buffer.size());
