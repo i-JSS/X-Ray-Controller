@@ -79,7 +79,7 @@ static void printMessageDebug(span<uint8_t> message) {
             << "Dados: " << dataStr.str() << "\n"
             << "CRC: " << std::hex << std::setw(2) << std::setfill('0') << (crc & 0xFF) << " "
             << std::setw(2) << std::setfill('0') << (crc >> 8) << "\n"
-            << "Payload: " << payloadStr.str()
+            << "Payload: " << payloadStr.str() << "\n"
             << "--- Fim da mensagem ----\n";
 }
 #endif
