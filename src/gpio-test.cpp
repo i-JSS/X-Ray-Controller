@@ -2,6 +2,11 @@
 #include <array>
 #include <iostream>
 
+void quit() {
+  // Stop all motors and quit
+  exit(0);
+}
+
 struct botao {
   int pino;
   std::string nome;
@@ -22,6 +27,8 @@ int main(void) {
       std::cout << "Botão " << botao.nome << " pressionado!" << std::endl;
     });
   }
+
+  gpio.configureInterrupt(BOTAO_EMERGENCIA, quit);
 
   while (true) {
     for (auto &botao : botoes) {

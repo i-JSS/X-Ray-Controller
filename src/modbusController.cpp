@@ -29,8 +29,6 @@ vector<uint8_t> ModbusController::makeRequest(Message &message) {
       uart_.send(message.build());
       uart_.sync();
 
-      // NOTE: dá pra pegar o tamanho esperado da resposta exato
-      // e dá pra conferir se o tamanho bate
       auto response = uart_.read(256);
 
 #ifdef DEBUG
