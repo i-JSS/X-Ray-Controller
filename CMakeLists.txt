@@ -18,3 +18,6 @@ add_executable(main
   ${SRC_DIR}/bmp280Controller.cpp
   ${SRC_DIR}/i2cController.cpp)
 target_link_libraries(main ${WIRINGPI_LIB})
+
+add_executable(gpio-test ${SRC_DIR}/gpio.cpp)
+target_link_libraries(main ${WIRINGPI_LIB})

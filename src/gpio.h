@@ -1,5 +1,8 @@
 #pragma once
 #include <array>
+#include <functional>
+#include <memory>
+#include <optional>
 
 constexpr int MOTOR_X_PWM = 17;
 constexpr int MOTOR_X_DIR1 = 27;
@@ -26,3 +29,51 @@ constexpr int BOTAO_ESQ = 6;
 constexpr int BOTAO_DIR = 8;
 
 constexpr int BOTAO_EMERGENCIA = 11;
+
+typedef std::function<void(void)> callback_t;
+class GPIOController {
+private:
+  // NOTE: criei meu própio enum pois
+  // não tenho o wiringPi na minha máquina,
+  // quero certificar que tudo funciona
+  enum class Mode { IN,
+                    OUT,
+                    PWM_OUT,
+                    INTERRUPT };
+  struct Pin {
+    int id;
+    Mode mode;
+  };
+
+  struct InputPin : Pin {
+    std::optional<bool> lastState;
+    callback_t handle;
+  };
+
+  std::vector<Pin> configuredPins;
+
+  GPIOController() {
+    wiringPiSetupGpio();
+  }
+
+public:
+  GPIOController(const GPIOController &) = delete;
+  void operator=(const GPIOController &) = delete;
+  static GPIOController &getInstance() {
+    static GPIOController instance;
+    return instance;
+  }
+
+  /* PERF: Espero encarecidamente que essas funções sejam inlined
+   * pelo compilador
+   */
+  const Pin *getExistingPin(int pin);
+  void configureInputPin(int pin, callback_t handle = nullptr);
+  void configureOutputPin(int pin);
+  void configurePWMPin(int pin);
+  void configureInterrupt(int pin, void (*handle)(void));
+
+  void setPWMOutput(int pin, int value);
+  void setDigitalOutput(int pin, bool value);
+  bool getDigitalInput(int pin) const;
+};
