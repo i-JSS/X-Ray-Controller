@@ -42,24 +42,24 @@ int main() {
   while (true) {
     try {
       auto screenState = modbus.readRegisters();
+      auto sensorState = bmp280.readData();
+
+      std::cout << "\033[H\033[J";
+
+      std::ostringstream output;
+      output << screenState;
+      output << "Temperature: " << sensorState.temperature << "ºC\n";
+      output << "Pressure: " << sensorState.pressure << "hPA\n";
+
+      std::cout << output.str();
+      std::cout.flush();
+
+      modbus.write(ModbusController::SubCode::REG_TEMPERATURE, sensorState.temperature);
+      modbus.write(ModbusController::SubCode::REG_PRESSURE, sensorState.pressure);
     } catch (const std::exception &e) {
-      std::cerr << "Error reading registers: " << e.what() << "\n";
+      std::cerr << "Error: " << e.what() << "\n";
       break;
     }
-    auto sensorState = bmp280.readData();
-
-    std::cout << "\033[H\033[J";
-
-    std::ostringstream output;
-    output << screenState;
-    output << "Temperature: " << sensorState.temperature << "ºC\n";
-    output << "Pressure: " << sensorState.pressure << "hPA\n";
-
-    std::cout << output.str();
-    std::cout.flush();
-
-    modbus.write(ModbusController::SubCode::REG_TEMPERATURE, sensorState.temperature);
-    modbus.write(ModbusController::SubCode::REG_PRESSURE, sensorState.pressure);
   }
   return 0;
 }
