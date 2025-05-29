@@ -27,6 +27,7 @@ Movimentos:
 
 Constante deve ser experimental, a não
 ser que o sistema possa ser modelado matematicamente.
+
 Três dimensões independentes:
 
 Proporcional: Constante \* erro.
