@@ -12,15 +12,15 @@ using namespace std;
 
 #ifdef DEBUG
 #include <iomanip>
-#include <sstream>
-#include <unordered_map>
-static void printHex(std::span<uint8_t> data) {
+#include <iostream>
+std::string printHex(std::span<const uint8_t> data) {
   std::ostringstream oss;
-  for (uint8_t byte : data) {
-    oss << std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";
+  for (const auto &byte : data) {
+    oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << " ";
   }
-  std::cout << oss.str() << std::endl;
+  return oss.str();
 }
+
 #endif
 
 vector<uint8_t> ModbusController::makeRequest(Message &message) {
@@ -32,7 +32,13 @@ vector<uint8_t> ModbusController::makeRequest(Message &message) {
 
   if (!isValidCRC(response.data(), response.size())) {
     uart_.ensureClosed();
+#ifdef DEBUG
+    std::string errorMsg = "Invalid CRC checksum: ";
+    errorMsg += printHex(response);
+    throw std::runtime_error(errorMsg);
+#else
     throw std::runtime_error("Invalid CRC checksum");
+#endif
   }
 
   uart_.ensureClosed();
