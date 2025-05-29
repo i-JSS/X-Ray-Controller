@@ -3,17 +3,19 @@ project(x-ray-controller)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+
+add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)
+add_compile_options(-Wall -Wextra)
 
 find_library(WIRINGPI_LIB wiringPi REQUIRED)
 
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(BUILD_DIR ${CMAKE_BINARY_DIR})
 
-add_library(gpio_lib STATIC ${SRC_DIR}/gpio.cpp ${WIRINGPI_LIB})
+add_library(gpio_lib STATIC ${SRC_DIR}/gpio.cpp)
 add_library(modbus_lib STATIC ${SRC_DIR}/modbusController.cpp ${SRC_DIR}/uartController.cpp)
 add_library(sensor_lib STATIC ${SRC_DIR}/bmp280Controller.cpp ${SRC_DIR}/i2cController.cpp)
+target_link_libraries(gpio_lib ${WIRINGPI_LIB})
 
 add_executable(main ${SRC_DIR}/main.cpp)
 target_link_libraries(main gpio_lib modbus_lib sensor_lib)
