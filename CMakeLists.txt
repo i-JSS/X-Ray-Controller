@@ -11,13 +11,12 @@ find_library(WIRINGPI_LIB wiringPi REQUIRED)
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(BUILD_DIR ${CMAKE_BINARY_DIR})
 
-add_executable(main 
-  ${SRC_DIR}/main.cpp 
-  ${SRC_DIR}/uartController.cpp 
-  ${SRC_DIR}/modbusController.cpp 
-  ${SRC_DIR}/bmp280Controller.cpp
-  ${SRC_DIR}/i2cController.cpp)
-target_link_libraries(main ${WIRINGPI_LIB})
+add_library(gpio_lib STATIC ${SRC_DIR}/gpio.cpp ${WIRINGPI_LIB})
+add_library(modbus_lib STATIC ${SRC_DIR}/modbusController.cpp ${SRC_DIR}/uartController.cpp)
+add_library(sensor_lib STATIC ${SRC_DIR}/bmp280Controller.cpp ${SRC_DIR}/i2cController.cpp)
 
-add_executable(gpio-test ${SRC_DIR}/gpio-test.cpp ${SRC_DIR}/gpio.cpp)
-target_link_libraries(gpio-test ${WIRINGPI_LIB})
+add_executable(main ${SRC_DIR}/main.cpp)
+target_link_libraries(main gpio_lib modbus_lib sensor_lib)
+
+add_executable(gpio-test ${SRC_DIR}/gpio-test.cpp)
+target_link_libraries(gpio-test gpio_lib)
