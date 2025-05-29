@@ -41,6 +41,17 @@ vector<uint8_t> ModbusController::makeRequest(Message &message) {
 #endif
   }
 
+  if (response.size() != 2 + message.getQtd()) {
+#ifdef DEBUG
+    std::string errorMsg = "Wrong response size: expected " + std::to_string(2 + message.getQtd()) +
+                           ", got " + std::to_string(response.size()) + ". Response: ";
+    errorMsg += printHex(response);
+    throw std::runtime_error(errorMsg);
+#else
+    throw std::runtime_error("Wrong response size");
+#endif
+  }
+
   uart_.ensureClosed();
   return response;
 }
