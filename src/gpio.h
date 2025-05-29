@@ -26,7 +26,7 @@ constexpr int CAPTURA = 18;
 
 constexpr int BOTAO_CIMA = 16;
 constexpr int BOTAO_BAIXO = 1;
-constexpr int BOTAO_ESQ = 6;
+constexpr int BOTAO_ESQ = 7;
 constexpr int BOTAO_DIR = 8;
 
 constexpr int BOTAO_EMERGENCIA = 11;
