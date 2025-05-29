@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <wiringPi.h>
 
 constexpr int MOTOR_X_PWM = 17;
 constexpr int MOTOR_X_DIR1 = 27;
