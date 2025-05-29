@@ -32,24 +32,7 @@ vector<uint8_t> ModbusController::makeRequest(Message &message) {
 
   if (!isValidCRC(response.data(), response.size())) {
     uart_.ensureClosed();
-#ifdef DEBUG
-    std::string errorMsg = "Invalid CRC checksum: ";
-    errorMsg += printHex(response);
-    throw std::runtime_error(errorMsg);
-#else
     throw std::runtime_error("Invalid CRC checksum");
-#endif
-  }
-
-  if (response.size() != 2 + message.getQtd()) {
-#ifdef DEBUG
-    std::string errorMsg = "Wrong response size: expected " + std::to_string(2 + message.getQtd()) +
-                           ", got " + std::to_string(response.size()) + ". Response: ";
-    errorMsg += printHex(response);
-    throw std::runtime_error(errorMsg);
-#else
-    throw std::runtime_error("Wrong response size");
-#endif
   }
 
   uart_.ensureClosed();
@@ -71,8 +54,8 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   // Próximo
   offset++;
 
-  state.isMoving[0] = (response[offset] & 0x01) != 0;
-  state.isMoving[1] = (response[offset] & 0x02) != 0;
+  state.isMoving[2] = (response[offset] & 0x01) != 0;
+  state.isMoving[3] = (response[offset] & 0x02) != 0;
 
   offset++;
 
