@@ -40,7 +40,12 @@ int main() {
 
   modbus.init();
   while (true) {
-    auto screenState = modbus.readRegisters();
+    try {
+      auto screenState = modbus.readRegisters();
+    } catch (const std::exception &e) {
+      std::cerr << "Error reading registers: " << e.what() << "\n";
+      break;
+    }
     auto sensorState = bmp280.readData();
 
     std::cout << "\033[H\033[J";

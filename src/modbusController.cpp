@@ -24,27 +24,18 @@ static void printHex(std::span<uint8_t> data) {
 
 vector<uint8_t> ModbusController::makeRequest(Message &message) {
   uart_.ensureOpen();
-  while (true) {
-    try {
-      uart_.send(message.build());
-      uart_.sync();
+  uart_.send(message.build());
+  uart_.sync();
 
-      auto response = uart_.read(256);
+  auto response = uart_.read(256);
 
-#ifdef DEBUG
-      cout << "Resposta recebida: ";
-      printHex(response);
-#endif
-      if (!isValidCRC(response.data(), response.size()))
-        throw std::runtime_error("Invalid CRC checksum");
-
-      uart_.ensureClosed();
-      return response;
-    } catch (const std::exception &e) {
-      cerr << "Erro ao fazer requisição: " << e.what() << endl;
-      continue;
-    }
+  if (!isValidCRC(response.data(), response.size())) {
+    uart_.ensureClosed();
+    throw std::runtime_error("Invalid CRC checksum");
   }
+
+  uart_.ensureClosed();
+  return response;
 }
 
 ModbusController::RegisterState ModbusController::readRegisters() {
@@ -75,13 +66,11 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   state.isCalibrating = response[offset++];
   state.isSettingPreset = response[offset++];
 
-  // Limpar registradores de leitura
   clearRegisters(SubCode::MOVE_X_LEFT_RIGHT, 5);
   return state;
 }
 
 void ModbusController::init() {
-  // Zerar todos os registradores
   clearRegisters(SubCode::MOVE_X_LEFT_RIGHT, 30);
 }
 
