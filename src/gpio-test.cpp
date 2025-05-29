@@ -1,6 +1,7 @@
 #include "gpio.h"
 #include <array>
 #include <iostream>
+#include <unistd.h>
 
 void quit() {
   // Stop all motors and quit
