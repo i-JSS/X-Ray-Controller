@@ -2,6 +2,7 @@
 #include "modbusController.h"
 #include "uartController.h"
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <fcntl.h>
 #include <iostream>
@@ -59,6 +60,8 @@ private:
     SubCode readRegister;
     uint8_t registerCount;
 
+    ReadMessage(SubCode reg, uint8_t count) : readRegister(reg), registerCount(count) {}
+
     vector<uint8_t> build() const override {
       vector<uint8_t> msg = {ESP_ADDRESS,
                              static_cast<uint8_t>(Code::READ),
@@ -73,6 +76,9 @@ private:
   struct WriteMessage : Message {
     SubCode writeRegister;
     span<const uint8_t> data;
+
+    WriteMessage(SubCode reg, span<const uint8_t> dataSpan)
+        : writeRegister(reg), data(dataSpan) {}
 
     vector<uint8_t> build() const override {
       vector<uint8_t> msg = {ESP_ADDRESS,

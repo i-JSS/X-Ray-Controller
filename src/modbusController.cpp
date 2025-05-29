@@ -1,9 +1,11 @@
 #include "modbusController.h"
 #include "uartController.h"
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <fcntl.h>
 #include <span>
+#include <stdexcept>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
@@ -41,10 +43,7 @@ vector<uint8_t> ModbusController::makeRequest(Message &message) {
 
 ModbusController::RegisterState ModbusController::readRegisters() {
   RegisterState state;
-  ReadMessage readMessage;
-
-  readMessage.readRegister = SubCode::MOVE_X_LEFT_RIGHT;
-  readMessage.registerCount = 5;
+  ReadMessage readMessage(SubCode::MOVE_X_LEFT_RIGHT, 5);
   auto response = makeRequest(readMessage);
   int offset = 2;
 
@@ -81,10 +80,7 @@ void ModbusController::clearRegisters(SubCode espRegister, int bytesToClear) {
 }
 
 void ModbusController::write(SubCode espRegister, span<const uint8_t> data) {
-  WriteMessage writeMessage;
-  writeMessage.writeRegister = espRegister;
-  writeMessage.data = data;
-
+  WriteMessage writeMessage(espRegister, data);
   makeRequest(writeMessage);
 }
 
