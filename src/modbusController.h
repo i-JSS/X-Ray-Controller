@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <fcntl.h>
 #include <iostream>
+#include <span>
 #include <string>
 #include <sys/types.h>
 #include <termios.h>

@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <fcntl.h>
+#include <span>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
