@@ -57,8 +57,10 @@ int main() {
       modbus.write(ModbusController::SubCode::REG_TEMPERATURE, sensorState.temperature);
       modbus.write(ModbusController::SubCode::REG_PRESSURE, sensorState.pressure);
     } catch (const std::exception &e) {
+#ifdef DEBUG
       std::cerr << "Error: " << e.what() << "\n";
-      break;
+#endif
+      continue;
     }
   }
   return 0;
