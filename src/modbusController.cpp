@@ -54,7 +54,7 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   readMessage.readRegister = SubCode::MOVE_X_LEFT_RIGHT;
   readMessage.registerCount = 5;
   auto response = makeRequest(readMessage);
-  int offset = 3;
+  int offset = 2;
 
   state.isMoving[0] = response[offset] & 0x01;
   state.isMoving[1] = response[offset] & 0x02;
