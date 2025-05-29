@@ -10,8 +10,6 @@ add_compile_options(-Wall -Wextra)
 find_library(WIRINGPI_LIB wiringPi REQUIRED)
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 set(LIB_DIR ${CMAKE_SOURCE_DIR}/lib)
-set(BUILD_DIR ${CMAKE_BINARY_DIR})
-
 
 add_library(pid_lib STATIC lib/pid.c)
 add_library(gpio_lib STATIC ${SRC_DIR}/gpio.cpp)
