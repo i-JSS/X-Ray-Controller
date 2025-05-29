@@ -41,12 +41,15 @@ public:
   explicit ModbusController(const string &portName, const speed_t baudRate)
       : uart_(portName, baudRate) {}
 
+  void init();
   [[nodiscard]] RegisterState readRegisters();
   void write(SubCode espRegister, float value);
   void write(SubCode espRegister, byte value);
   void ensureClosed() { uart_.ensureClosed(); }
 
 private:
+  void clearRegisters(SubCode espRegister, int bytesToClear);
+  void write(SubCode espRegister, span<const uint8_t> data);
   struct Message {
     virtual vector<uint8_t> build() const = 0;
     virtual uint8_t getQtd() const = 0;
@@ -68,7 +71,7 @@ private:
   };
   struct WriteMessage : Message {
     SubCode writeRegister;
-    vector<uint8_t> data;
+    span<const uint8_t> data;
 
     vector<uint8_t> build() const override {
       vector<uint8_t> msg = {ESP_ADDRESS,

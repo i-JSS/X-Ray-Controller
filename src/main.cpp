@@ -38,6 +38,7 @@ int main() {
   std::cout << "\033[2J\033[H";
   std::cout.flush();
 
+  modbus.init();
   while (true) {
     auto screenState = modbus.readRegisters();
     auto sensorState = bmp280.readData();

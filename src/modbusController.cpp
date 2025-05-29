@@ -75,24 +75,35 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   state.isCalibrating = response[offset++];
   state.isSettingPreset = response[offset++];
 
+  // Limpar registradores de leitura
+  clearRegisters(SubCode::MOVE_X_LEFT_RIGHT, 5);
   return state;
 }
 
-// Escrever fora da região de memória dá erro
-void ModbusController::write(SubCode espRegister, float value) {
+void ModbusController::init() {
+  // Zerar todos os registradores
+  clearRegisters(SubCode::MOVE_X_LEFT_RIGHT, 30);
+}
+
+void ModbusController::clearRegisters(SubCode espRegister, int bytesToClear) {
+  std::vector<uint8_t> clearData(bytesToClear, 0);
+  write(espRegister, span(clearData));
+}
+
+void ModbusController::write(SubCode espRegister, span<const uint8_t> data) {
   WriteMessage writeMessage;
   writeMessage.writeRegister = espRegister;
-
-  uint8_t *dataPtr = reinterpret_cast<uint8_t *>(&value);
-  writeMessage.data.assign(dataPtr, dataPtr + sizeof(float));
+  writeMessage.data = data;
 
   makeRequest(writeMessage);
 }
 
-void ModbusController::write(SubCode espRegister, byte value) {
-  WriteMessage writeMessage;
-  writeMessage.writeRegister = espRegister;
-  writeMessage.data.push_back(static_cast<uint8_t>(value));
+void ModbusController::write(SubCode espRegister, float value) {
+  uint8_t *dataPtr = reinterpret_cast<uint8_t *>(&value);
+  write(espRegister, span(dataPtr, sizeof(float)));
+}
 
-  makeRequest(writeMessage);
+void ModbusController::write(SubCode espRegister, byte value) {
+  uint8_t valueAsUint8 = static_cast<uint8_t>(value);
+  write(espRegister, span(&valueAsUint8, 1));
 }
