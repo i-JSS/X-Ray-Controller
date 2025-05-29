@@ -48,3 +48,15 @@ Vai somando o erro ao longo do tempo, multiplicado pela constante integral a faz
 Funciona bem para sistemas dinâmcos pois o erro é sempre realimentado.
 
 Não funciona bem para sistemas não lineares.
+
+## Motor
+
+atributo de pinos e atributos de estado caso motor seja OOP:
+direção velocidade, sensores e etc
+
+pid.atualiza_ref(x)
+sleep(1)
+pid_controle(x)
+
+dá pra fazer serial ou multithread. máquinas de estados diferentes, pode se implementar de várias formas
+o sistema é lento o suficiente.
