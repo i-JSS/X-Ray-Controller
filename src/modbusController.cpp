@@ -53,8 +53,8 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   // Próximo
   offset++;
 
-  state.isMoving[2] = (response[offset] & 0x01) != 0;
-  state.isMoving[3] = (response[offset] & 0x02) != 0;
+  state.isMoving[2] = response[offset] & 0x01;
+  state.isMoving[3] = response[offset] & 0x02;
 
   offset++;
 
@@ -63,8 +63,8 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   state.readingPreset[2] = response[offset] & 0x04;
   state.readingPreset[3] = response[offset] & 0x08;
 
-  state.isCalibrating = response[offset++] != 0;
-  state.isSettingPreset = response[offset++] != 0;
+  state.isCalibrating = response[offset++];
+  state.isSettingPreset = response[offset++];
 
   clearRegisters(SubCode::MOVE_X_LEFT_RIGHT, 5);
   return state;
