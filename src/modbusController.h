@@ -34,13 +34,13 @@ public:
     OP_STATE = 0x1D
   };
   struct RegisterState {
-    array<bool, 4> isMoving = {0, 0, 0, 0};
-    array<bool, 4> readingPreset = {0, 0, 0, 0};
+    std::array<bool, 4> isMoving = {0, 0, 0, 0};
+    std::array<bool, 4> readingPreset = {0, 0, 0, 0};
     bool isCalibrating = false;
     bool isSettingPreset = false;
   };
 
-  explicit ModbusController(const string &portName, const speed_t baudRate)
+  explicit ModbusController(const std::string &portName, const speed_t baudRate)
       : uart_(portName, baudRate) {}
 
   void init();
@@ -51,7 +51,7 @@ public:
 
 private:
   static constexpr uint8_t ESP_ADDRESS = 0x01;
-  static constexpr array<uint8_t, 4> MATRICULA = {8, 1, 5, 0};
+  static constexpr std::array<uint8_t, 4> MATRICULA = {8, 1, 5, 0};
   static constexpr unsigned short tbl[256] = {
       0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241, 0xC601,
       0x06C0, 0x0780, 0xC741, 0x0500, 0xC5C1, 0xC481, 0x0440, 0xCC01, 0x0CC0,
@@ -87,7 +87,7 @@ private:
 
   struct Message {
     virtual ~Message() = default;
-    virtual vector<uint8_t> build() const = 0;
+    virtual std::vector<uint8_t> build() const = 0;
     virtual uint8_t getDataSize() const = 0;
   };
   struct ReadMessage : Message {
@@ -96,27 +96,26 @@ private:
 
     ReadMessage(SubCode reg, uint8_t count) : readRegister(reg), registerCount(count) {}
 
-    vector<uint8_t> build() const override;
+    std::vector<uint8_t> build() const override;
     uint8_t getDataSize() const override { return registerCount; }
   };
   struct WriteMessage : Message {
     SubCode writeRegister;
-    span<const uint8_t> data;
+    std::span<const uint8_t> data;
 
-    WriteMessage(SubCode reg, span<const uint8_t> dataSpan)
+    WriteMessage(SubCode reg, std::span<const uint8_t> dataSpan)
         : writeRegister(reg), data(dataSpan) {}
 
-    vector<uint8_t> build() const override;
+    std::vector<uint8_t> build() const override;
     uint8_t getDataSize() const override { return static_cast<uint8_t>(data.size()); }
   };
 
-  vector<uint8_t> makeRequest(Message &message);
+  std::vector<uint8_t> makeRequest(Message &message);
   void clearRegisters(SubCode espRegister, int bytesToClear);
-  void write(SubCode espRegister, span<const uint8_t> data);
+  void write(SubCode espRegister, std::span<const uint8_t> data);
 
-  static void addPostfix(vector<uint8_t> &buffer);
+  static void addPostfix(std::vector<uint8_t> &buffer);
   static short CRC16(short crc, char data);
-  static short calculateCRC(const unsigned char *commands,
-                            const int size);
+  static short calculateCRC(const unsigned char *commands, int size);
   static bool isValidCRC(const unsigned char *buffer, int length);
 };

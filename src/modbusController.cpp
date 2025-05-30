@@ -10,8 +10,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-using namespace std;
-
 #ifdef DEBUG
 #include <iomanip>
 #include <iostream>
@@ -25,26 +23,26 @@ std::string printHex(std::span<const uint8_t> data) {
 
 #endif
 
-vector<uint8_t> ModbusController::WriteMessage::build() const {
-  vector<uint8_t> msg = {ESP_ADDRESS,
-                         static_cast<uint8_t>(Code::WRITE),
-                         static_cast<uint8_t>(writeRegister),
-                         static_cast<uint8_t>(data.size())};
+std::vector<uint8_t> ModbusController::WriteMessage::build() const {
+  std::vector<uint8_t> msg = {ESP_ADDRESS,
+                              static_cast<uint8_t>(Code::WRITE),
+                              static_cast<uint8_t>(writeRegister),
+                              static_cast<uint8_t>(data.size())};
   msg.insert(msg.end(), data.begin(), data.end());
   addPostfix(msg);
   return msg;
 }
 
-vector<uint8_t> ModbusController::ReadMessage::build() const {
-  vector<uint8_t> msg = {ESP_ADDRESS,
-                         static_cast<uint8_t>(Code::READ),
-                         static_cast<uint8_t>(readRegister),
-                         registerCount};
+std::vector<uint8_t> ModbusController::ReadMessage::build() const {
+  std::vector<uint8_t> msg = {ESP_ADDRESS,
+                              static_cast<uint8_t>(Code::READ),
+                              static_cast<uint8_t>(readRegister),
+                              registerCount};
   addPostfix(msg);
   return msg;
 }
 
-void ModbusController::addPostfix(vector<uint8_t> &buffer) {
+void ModbusController::addPostfix(std::vector<uint8_t> &buffer) {
   buffer.insert(buffer.end(), MATRICULA.begin(), MATRICULA.end());
 
   uint16_t crc = calculateCRC(buffer.data(), buffer.size());
@@ -74,7 +72,7 @@ bool ModbusController::isValidCRC(const unsigned char *buffer, int length) {
 #pragma GCC diagnostic pop
 }
 
-vector<uint8_t> ModbusController::makeRequest(Message &message) {
+std::vector<uint8_t> ModbusController::makeRequest(Message &message) {
   uart_.ensureOpen();
   uart_.send(message.build());
   uart_.sync();
@@ -125,20 +123,20 @@ void ModbusController::init() {
 
 void ModbusController::clearRegisters(SubCode espRegister, int bytesToClear) {
   std::vector<uint8_t> clearData(bytesToClear, 0);
-  write(espRegister, span(clearData));
+  write(espRegister, std::span(clearData));
 }
 
-void ModbusController::write(SubCode espRegister, span<const uint8_t> data) {
+void ModbusController::write(SubCode espRegister, std::span<const uint8_t> data) {
   WriteMessage writeMessage(espRegister, data);
   makeRequest(writeMessage);
 }
 
 void ModbusController::write(SubCode espRegister, float value) {
   uint8_t *dataPtr = reinterpret_cast<uint8_t *>(&value);
-  write(espRegister, span(dataPtr, sizeof(float)));
+  write(espRegister, std::span(dataPtr, sizeof(float)));
 }
 
 void ModbusController::write(SubCode espRegister, byte value) {
   uint8_t valueAsUint8 = static_cast<uint8_t>(value);
-  write(espRegister, span(&valueAsUint8, 1));
+  write(espRegister, std::span(&valueAsUint8, 1));
 }
