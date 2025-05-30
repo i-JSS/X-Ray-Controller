@@ -54,8 +54,8 @@ int main() {
       std::cout << output.str();
       std::cout.flush();
 
-      modbus.write(ModbusController::SubCode::REG_TEMPERATURE, sensorState.temperature);
-      modbus.write(ModbusController::SubCode::REG_PRESSURE, sensorState.pressure);
+      modbus.write(ModbusController::SubCode::TEMP, sensorState.temperature);
+      modbus.write(ModbusController::SubCode::PRESSURE, sensorState.pressure);
     } catch (const std::exception &e) {
 #ifdef DEBUG
       std::cerr << "Error: " << e.what() << "\n";
