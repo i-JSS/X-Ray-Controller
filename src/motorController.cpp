@@ -3,20 +3,16 @@
 #include <algorithm>
 #include <thread>
 
-static void consume() {
-  // This function is intentionally left empty to avoid unused function warnings.
-}
-
 MotorController::MotorController(int PWM, int DIR1, int DIR2, int ENCODER_A, int ENCODER_B, int MIN_SENSOR, int MAX_SENSOR, int trackLengthInCM)
     : PWM_OUT(PWM), DIR1(DIR1), DIR2(DIR2), ENCODER_A(ENCODER_A), ENCODER_B(ENCODER_B),
       MIN_SENSOR(MIN_SENSOR), MAX_SENSOR(MAX_SENSOR), trackLengthInCM(trackLengthInCM) {
   gpio.configurePWMPin(PWM_OUT);
   gpio.configureOutputPin(DIR1);
   gpio.configureOutputPin(DIR2);
-  gpio.configureInputPin(ENCODER_A, consume);
-  gpio.configureInputPin(ENCODER_B, consume);
-  gpio.configureInputPin(MIN_SENSOR, consume);
-  gpio.configureInputPin(MAX_SENSOR, consume);
+  gpio.configureInputPin(ENCODER_A);
+  gpio.configureInputPin(ENCODER_B);
+  gpio.configureInputPin(MIN_SENSOR);
+  gpio.configureInputPin(MAX_SENSOR);
 }
 
 void MotorController::init() {

@@ -48,7 +48,7 @@ private:
 
   struct InputPin : Pin {
     std::optional<bool> lastState;
-    callback_t handle;
+    std::optional<callback_t> handle;
   };
 
   std::vector<Pin> configuredPins;

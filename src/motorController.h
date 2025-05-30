@@ -4,10 +4,6 @@
 #include <atomic>
 #include <thread>
 
-void consume() {
-  // This function is intentionally left empty to avoid unused function warnings.
-}
-
 class MotorController {
   PIDController pidController;
   GPIOController &gpio = GPIOController::getInstance();

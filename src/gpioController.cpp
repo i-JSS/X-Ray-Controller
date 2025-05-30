@@ -14,13 +14,14 @@ const GPIOController::Pin *GPIOController::getExistingPin(int pin) {
   return (it != configuredPins.end()) ? &(*it) : nullptr;
 }
 
-void GPIOController::configureInputPin(int pin, std::function<void(void)> handle) {
+void GPIOController::configureInputPin(int pin, callback_t handle) {
   if (getExistingPin(pin))
     throw std::runtime_error("Pin" + std::to_string(pin) + " is already configured.");
 
   pinMode(pin, INPUT);
 
-  InputPin inputPin = {pin, Mode::IN, std::nullopt, handle};
+  std::optional<callback_t> optHandle = handle ? std::make_optional(handle) : std::nullopt;
+  InputPin inputPin = {pin, Mode::IN, optHandle, handle};
 }
 
 void GPIOController::configureOutputPin(int pin) {
