@@ -1,4 +1,4 @@
-#include "pid.h"
+#include "pidController.h"
 
 double PIDController::getControlSignal(double measuredOutput) {
 
