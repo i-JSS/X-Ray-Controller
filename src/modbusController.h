@@ -20,18 +20,18 @@ public:
     WRITE = 0x06,
   };
   enum class SubCode : uint8_t {
-    MOVE_X_LEFT_RIGHT = 0x00,
-    MOVE_Y_UP_DOWN = 0x01,
-    PRESET_POSITIONS = 0x02,
-    SET_PRESET_POSITION = 0x03,
+    MOVE_X = 0x00,
+    MOVE_Y = 0x01,
+    PRESETS = 0x02,
+    CONFIG_PRESET = 0x03,
     CALIBRATE = 0x04,
-    REG_SPEED_X = 0x05,
-    REG_SPEED_Y = 0x09,
-    REG_POSITION_X = 0x0D,
-    REG_POSITION_Y = 0x11,
-    REG_TEMPERATURE = 0x15,
-    REG_PRESSURE = 0x19,
-    REG_MACHINE_STATE = 0x1D
+    X_SPEED = 0x05,
+    Y_SPEED = 0x09,
+    X_POS = 0x0D,
+    Y_POS = 0x11,
+    TEMP = 0x15,
+    PRESSURE = 0x19,
+    OP_STATE = 0x1D
   };
   struct RegisterState {
     array<bool, 4> isMoving = {0, 0, 0, 0};

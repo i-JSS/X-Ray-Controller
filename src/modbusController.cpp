@@ -92,7 +92,7 @@ vector<uint8_t> ModbusController::makeRequest(Message &message) {
 
 ModbusController::RegisterState ModbusController::readRegisters() {
   RegisterState state;
-  ReadMessage readMessage(SubCode::MOVE_X_LEFT_RIGHT, 5);
+  ReadMessage readMessage(SubCode::MOVE_X, 5);
   auto response = makeRequest(readMessage);
   int offset = 2;
 
@@ -115,12 +115,12 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   state.isCalibrating = response[offset++];
   state.isSettingPreset = response[offset++];
 
-  clearRegisters(SubCode::MOVE_X_LEFT_RIGHT, 5);
+  clearRegisters(SubCode::MOVE_X, 5);
   return state;
 }
 
 void ModbusController::init() {
-  clearRegisters(SubCode::MOVE_X_LEFT_RIGHT, 30);
+  clearRegisters(SubCode::MOVE_X, 30);
 }
 
 void ModbusController::clearRegisters(SubCode espRegister, int bytesToClear) {
