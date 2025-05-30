@@ -13,6 +13,7 @@ set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 add_library(gpio_lib STATIC ${SRC_DIR}/gpioController.cpp)
 add_library(modbus_lib STATIC ${SRC_DIR}/modbusController.cpp ${SRC_DIR}/uartController.cpp)
 add_library(sensor_lib STATIC ${SRC_DIR}/bmp280Controller.cpp ${SRC_DIR}/i2cController.cpp)
+add_library(pid_lib STATIC ${SRC_DIR}/pidController.cpp)
 target_link_libraries(gpio_lib ${WIRINGPI_LIB})
 
 add_executable(main ${SRC_DIR}/main.cpp)
