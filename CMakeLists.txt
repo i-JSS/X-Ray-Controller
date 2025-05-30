@@ -22,4 +22,4 @@ add_executable(main ${SRC_DIR}/main.cpp)
 target_link_libraries(main gpio_lib modbus_lib sensor_lib)
 
 add_executable(motor-test ${SRC_DIR}/motor-test.cpp)
-target_link_libraries(gpio-test motor_lib)
+target_link_libraries(motor-test motor_lib)
