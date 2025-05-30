@@ -21,7 +21,7 @@ void GPIOController::configureInputPin(int pin, callback_t handle) {
   pinMode(pin, INPUT);
 
   std::optional<callback_t> optHandle = handle ? std::make_optional(handle) : std::nullopt;
-  InputPin inputPin = {pin, Mode::IN, optHandle, handle};
+  InputPin inputPin = {pin, Mode::IN, std::nullopt, optHandle};
 }
 
 void GPIOController::configureOutputPin(int pin) {
