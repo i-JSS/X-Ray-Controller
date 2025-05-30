@@ -1,4 +1,4 @@
-#include "gpio.h"
+#include "gpioController.h"
 #include <array>
 #include <iostream>
 #include <unistd.h>
