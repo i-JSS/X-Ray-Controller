@@ -50,64 +50,8 @@ public:
   void ensureClosed() { uart_.ensureClosed(); }
 
 private:
-  void clearRegisters(SubCode espRegister, int bytesToClear);
-  void write(SubCode espRegister, span<const uint8_t> data);
-  struct Message {
-    virtual vector<uint8_t> build() const = 0;
-    virtual uint8_t getQtd() const = 0;
-  };
-  struct ReadMessage : Message {
-    SubCode readRegister;
-    uint8_t registerCount;
-
-    ReadMessage(SubCode reg, uint8_t count) : readRegister(reg), registerCount(count) {}
-
-    vector<uint8_t> build() const override {
-      vector<uint8_t> msg = {ESP_ADDRESS,
-                             static_cast<uint8_t>(Code::READ),
-                             static_cast<uint8_t>(readRegister),
-                             registerCount};
-      addPostfix(msg);
-      return msg;
-    };
-
-    uint8_t getQtd() const override { return registerCount; }
-  };
-  struct WriteMessage : Message {
-    SubCode writeRegister;
-    span<const uint8_t> data;
-
-    WriteMessage(SubCode reg, span<const uint8_t> dataSpan)
-        : writeRegister(reg), data(dataSpan) {}
-
-    vector<uint8_t> build() const override {
-      vector<uint8_t> msg = {ESP_ADDRESS,
-                             static_cast<uint8_t>(Code::WRITE),
-                             static_cast<uint8_t>(writeRegister),
-                             static_cast<uint8_t>(data.size())};
-      msg.insert(msg.end(), data.begin(), data.end());
-      addPostfix(msg);
-      return msg;
-    }
-
-    uint8_t getQtd() const override { return static_cast<uint8_t>(data.size()); }
-  };
-
   static constexpr uint8_t ESP_ADDRESS = 0x01;
   static constexpr array<uint8_t, 4> MATRICULA = {8, 1, 5, 0};
-
-  UARTController uart_;
-
-  vector<uint8_t> makeRequest(Message &message);
-
-  static void addPostfix(vector<uint8_t> &buffer) {
-    buffer.insert(buffer.end(), MATRICULA.begin(), MATRICULA.end());
-
-    uint16_t crc = calculateCRC(buffer.data(), buffer.size());
-    buffer.push_back(static_cast<uint8_t>(crc & 0xFF));
-    buffer.push_back(static_cast<uint8_t>(crc >> 8));
-  }
-
   static constexpr unsigned short tbl[256] = {
       0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241, 0xC601,
       0x06C0, 0x0780, 0xC741, 0x0500, 0xC5C1, 0xC481, 0x0440, 0xCC01, 0x0CC0,
@@ -138,25 +82,41 @@ private:
       0x8F81, 0x4F40, 0x8D01, 0x4DC0, 0x4C80, 0x8C41, 0x4400, 0x84C1, 0x8581,
       0x4540, 0x8701, 0x47C0, 0x4680, 0x8641, 0x8201, 0x42C0, 0x4380, 0x8341,
       0x4100, 0x81C1, 0x8081, 0x4040};
-  static short CRC16(short crc, char data) {
-    return ((crc & 0xFF00) >> 8) ^ tbl[(crc & 0x00FF) ^ (data & 0x00FF)];
-  }
 
+  UARTController uart_;
+
+  struct Message {
+    virtual ~Message() = default;
+    virtual vector<uint8_t> build() const = 0;
+    virtual uint8_t getQtd() const = 0;
+  };
+  struct ReadMessage : Message {
+    SubCode readRegister;
+    uint8_t registerCount;
+
+    ReadMessage(SubCode reg, uint8_t count) : readRegister(reg), registerCount(count) {}
+
+    vector<uint8_t> build() const override;
+    uint8_t getQtd() const override { return registerCount; }
+  };
+  struct WriteMessage : Message {
+    SubCode writeRegister;
+    span<const uint8_t> data;
+
+    WriteMessage(SubCode reg, span<const uint8_t> dataSpan)
+        : writeRegister(reg), data(dataSpan) {}
+
+    vector<uint8_t> build() const override;
+    uint8_t getQtd() const override { return static_cast<uint8_t>(data.size()); }
+  };
+
+  vector<uint8_t> makeRequest(Message &message);
+  void clearRegisters(SubCode espRegister, int bytesToClear);
+  void write(SubCode espRegister, span<const uint8_t> data);
+
+  static void addPostfix(vector<uint8_t> &buffer);
+  static short CRC16(short crc, char data);
   static short calculateCRC(const unsigned char *commands,
-                            const int size) {
-    short crc = 0;
-    for (int i = 0; i < size; i++)
-      crc = CRC16(crc, commands[i]);
-    return crc;
-  }
-
-  static bool isValidCRC(const unsigned char *buffer, int length) {
-    if (length < 3)
-      return false;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wparentheses"
-    return calculateCRC(buffer, length - 2) == buffer[length - 2] |
-           (buffer[length - 1] << 8);
-#pragma GCC diagnostic pop
-  }
+                            const int size);
+  static bool isValidCRC(const unsigned char *buffer, int length);
 };

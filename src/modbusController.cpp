@@ -25,6 +25,55 @@ std::string printHex(std::span<const uint8_t> data) {
 
 #endif
 
+vector<uint8_t> ModbusController::WriteMessage::build() const {
+  vector<uint8_t> msg = {ESP_ADDRESS,
+                         static_cast<uint8_t>(Code::WRITE),
+                         static_cast<uint8_t>(writeRegister),
+                         static_cast<uint8_t>(data.size())};
+  msg.insert(msg.end(), data.begin(), data.end());
+  addPostfix(msg);
+  return msg;
+}
+
+vector<uint8_t> ModbusController::ReadMessage::build() const {
+  vector<uint8_t> msg = {ESP_ADDRESS,
+                         static_cast<uint8_t>(Code::READ),
+                         static_cast<uint8_t>(readRegister),
+                         registerCount};
+  addPostfix(msg);
+  return msg;
+}
+
+void ModbusController::addPostfix(vector<uint8_t> &buffer) {
+  buffer.insert(buffer.end(), MATRICULA.begin(), MATRICULA.end());
+
+  uint16_t crc = calculateCRC(buffer.data(), buffer.size());
+  buffer.push_back(static_cast<uint8_t>(crc & 0xFF));
+  buffer.push_back(static_cast<uint8_t>(crc >> 8));
+}
+
+short ModbusController::CRC16(short crc, char data) {
+  return ((crc & 0xFF00) >> 8) ^ tbl[(crc & 0x00FF) ^ (data & 0x00FF)];
+}
+
+short ModbusController::calculateCRC(const unsigned char *commands,
+                                     const int size) {
+  short crc = 0;
+  for (int i = 0; i < size; i++)
+    crc = CRC16(crc, commands[i]);
+  return crc;
+}
+
+bool ModbusController::isValidCRC(const unsigned char *buffer, int length) {
+  if (length < 3)
+    return false;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wparentheses"
+  return calculateCRC(buffer, length - 2) == buffer[length - 2] |
+         (buffer[length - 1] << 8);
+#pragma GCC diagnostic pop
+}
+
 vector<uint8_t> ModbusController::makeRequest(Message &message) {
   uart_.ensureOpen();
   uart_.send(message.build());
