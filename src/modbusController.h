@@ -88,7 +88,7 @@ private:
   struct Message {
     virtual ~Message() = default;
     virtual vector<uint8_t> build() const = 0;
-    virtual uint8_t getQtd() const = 0;
+    virtual uint8_t getDataSize() const = 0;
   };
   struct ReadMessage : Message {
     SubCode readRegister;
@@ -97,7 +97,7 @@ private:
     ReadMessage(SubCode reg, uint8_t count) : readRegister(reg), registerCount(count) {}
 
     vector<uint8_t> build() const override;
-    uint8_t getQtd() const override { return registerCount; }
+    uint8_t getDataSize() const override { return registerCount; }
   };
   struct WriteMessage : Message {
     SubCode writeRegister;
@@ -107,7 +107,7 @@ private:
         : writeRegister(reg), data(dataSpan) {}
 
     vector<uint8_t> build() const override;
-    uint8_t getQtd() const override { return static_cast<uint8_t>(data.size()); }
+    uint8_t getDataSize() const override { return static_cast<uint8_t>(data.size()); }
   };
 
   vector<uint8_t> makeRequest(Message &message);
