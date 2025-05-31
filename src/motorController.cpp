@@ -60,15 +60,13 @@ void MotorController::setFree() {
 void MotorController::setForward(int inputSpeed) {
   gpio.setDigitalOutput(DIR1, true);
   gpio.setDigitalOutput(DIR2, false);
-  speed = std::clamp(inputSpeed, 0, 1023);
-  gpio.setPWMOutput(PWM_OUT, speed);
+  gpio.setPWMOutput(PWM_OUT, inputSpeed);
 }
 
 void MotorController::setBackward(int inputSpeed) {
   gpio.setDigitalOutput(DIR1, false);
   gpio.setDigitalOutput(DIR2, true);
-  speed = std::clamp(inputSpeed, 0, 1023);
-  gpio.setPWMOutput(PWM_OUT, speed);
+  gpio.setPWMOutput(PWM_OUT, inputSpeed);
 }
 
 void MotorController::brake() {
@@ -79,8 +77,7 @@ void MotorController::brake() {
 }
 
 void MotorController::setSpeed(int inputSpeed) {
-  speed = std::clamp(inputSpeed, 0, 1023);
-  gpio.setPWMOutput(PWM_OUT, speed);
+  gpio.setPWMOutput(PWM_OUT, inputSpeed);
 }
 
 int MotorController::getSpeed() const {

@@ -3,6 +3,7 @@
 #include <functional>
 #include <vector>
 #include <wiringPi.h>
+#include <softPwm.h>
 
 // NOTE: se falta de referência a Pin for problema de performance
 // pode trocar por iterador
@@ -38,7 +39,7 @@ void GPIOController::configurePWMPin(int pin) {
   if (getExistingPin(pin))
     throw std::runtime_error("Pin" + std::to_string(pin) + " is already configured.");
 
-  pinMode(pin, PWM_OUTPUT);
+  softPwmCreate(pin, 0, 1023);
 
   Pin pwmPin = {pin, Mode::PWM_OUT};
   configuredPins.push_back(pwmPin);
@@ -55,7 +56,8 @@ void GPIOController::configureInterrupt(int pin, void (*handle)(void)) {
 }
 
 void GPIOController::setPWMOutput(int pin, int value) {
-  pwmWrite(pin, value);
+  int pwmValue = std::clamp(value, 0, 1023);
+  softPwmWrite(pin, pwmValue);
 }
 
 void GPIOController::setDigitalOutput(int pin, bool value) {
