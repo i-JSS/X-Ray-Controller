@@ -34,4 +34,11 @@ public:
   long long int getEncoderCount() const;
   void resetEncoderCount();
   ~MotorController();
+
+private:
+  long long int virtualMinLimit = 0;
+  long long int virtualMaxLimit = 0;
+  bool prevA = false;
+  bool prevB = false;
+  void updateEncoder();
 };

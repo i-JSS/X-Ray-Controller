@@ -2,6 +2,8 @@
 #include "gpioController.h"
 #include <algorithm>
 #include <thread>
+#include <unistd.h>
+#include <iostream>
 
 MotorController::MotorController(int PWM, int DIR1, int DIR2, int ENCODER_A, int ENCODER_B, int MIN_SENSOR, int MAX_SENSOR, int trackLengthInCM)
     : PWM_OUT(PWM), DIR1(DIR1), DIR2(DIR2), ENCODER_A(ENCODER_A), ENCODER_B(ENCODER_B),
@@ -35,20 +37,67 @@ void MotorController::init() {
   });
 }
 
-void MotorController::calibrate() {
-  gpio.setDigitalOutput(DIR1, false);
-  gpio.setDigitalOutput(DIR2, false);
-  gpio.setPWMOutput(PWM_OUT, 0);
-  pulseCount.store(0);
-  speed = 0;
+void MotorController::updateEncoder() {
+  bool a = gpio.getDigitalInput(ENCODER_A);
+  bool b = gpio.getDigitalInput(ENCODER_B);
 
-  while (gpio.getDigitalInput(MIN_SENSOR) != true) {
-    setBackward(1023);
+  if (a && !prevA) {
+    if (b) pulseCount.fetch_sub(1);
+    else pulseCount.fetch_add(1);
   }
-  trackLengthInPulses = pulseCount.load();
 
+  prevA = a;
+  prevB = b;
+}
+
+void MotorController::calibrate() {
+  constexpr int CALIBRATION_SPEED = 300;
+  constexpr int DIST_FROM_LIMIT_CM = 3;
+
+  setBackward(CALIBRATION_SPEED);
+  while (!gpio.getDigitalInput(MIN_SENSOR)) {
+    updateEncoder();
+    usleep(10000);
+  }
+  std::cout << "Minimum limit" << std::endl;
+  brake();
+  resetEncoderCount();
+
+  setForward(CALIBRATION_SPEED);
+  while (!gpio.getDigitalInput(MAX_SENSOR)) {
+    updateEncoder();
+    usleep(10000);
+  }
+  std::cout << "Maximum limit" << std::endl;
+  brake();
+
+  trackLengthInPulses = pulseCount.load();
+  std::cout << "Total pulses counted: " << trackLengthInPulses << std::endl;
+  std::cout << "length (cm): " << trackLengthInCM << std::endl;
+
+  if (trackLengthInPulses == 0 || trackLengthInCM == 0)
+    std::cerr << "Calibration error" << std::endl;
+
+  const double cmPerPulse = static_cast<double>(trackLengthInCM) / trackLengthInPulses;
+  const long long int marginPulses = static_cast<long long int>(DIST_FROM_LIMIT_CM / cmPerPulse);
+
+  virtualMinLimit = marginPulses;
+  virtualMaxLimit = trackLengthInPulses - marginPulses;
+
+
+  std::cout << "Minimum virtual limit set at: " << virtualMinLimit << " pulses" << std::endl;
+  std::cout << "Maximum virtual limit set at: " << virtualMaxLimit << " pulses" << std::endl;
+
+
+  // isso aqui é pra fazer ele voltar a posição inicial já prevendo a parede virtual, o prblema é q ele desliga o motor mas a inercia faz ele continuar andando e passa
+  setBackward(CALIBRATION_SPEED);
+  while (pulseCount.load() > virtualMinLimit) {
+    updateEncoder();
+    usleep(10000);
+  }
   brake();
 }
+
 
 void MotorController::setFree() {
   gpio.setDigitalOutput(DIR1, false);
