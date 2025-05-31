@@ -4,6 +4,11 @@
 #include <atomic>
 #include <thread>
 
+struct motorData {
+  float speed;
+  float distance;
+};
+
 class MotorController {
   PIDController pidController;
   GPIOController &gpio = GPIOController::getInstance();
@@ -33,12 +38,15 @@ public:
   int getSpeed() const;
   long long int getEncoderCount() const;
   void resetEncoderCount();
+  motorData getMotorData();
+  bool onForwardLimit();
+  bool onBackwardLimit();
   ~MotorController();
 
 private:
-  long long int virtualMinLimit = 0;
-  long long int virtualMaxLimit = 0;
+  long long int virtualMinLimit = 13;
+  long long int virtualMaxLimit = 1237;
   bool prevA = false;
   bool prevB = false;
-  void updateEncoder();
+  double cmPerPulse = 0.24;
 };

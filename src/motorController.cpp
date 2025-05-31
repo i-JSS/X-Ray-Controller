@@ -15,39 +15,29 @@ MotorController::MotorController(int PWM, int DIR1, int DIR2, int ENCODER_A, int
   gpio.configureInputPin(ENCODER_B);
   gpio.configureInputPin(MIN_SENSOR);
   gpio.configureInputPin(MAX_SENSOR);
+  init();
 }
 
 void MotorController::init() {
-  encoderThread = std::thread([this]() {
-    while (true) {
-      if (stopEncoder.load()) {
-        break;
-      }
+  bool prevA = gpio.getDigitalInput(ENCODER_A);
+  bool prevB = gpio.getDigitalInput(ENCODER_B);
 
+  encoderThread = std::thread([this, prevA, prevB]() mutable {
+    while (!stopEncoder.load()) {
       bool a = gpio.getDigitalInput(ENCODER_A);
       bool b = gpio.getDigitalInput(ENCODER_B);
 
-      if (a && !b) {
-        pulseCount.fetch_add(1);
-      } else if (!a && b) {
-        pulseCount.fetch_sub(1);
+      if (a && !prevA) {
+        if (b) pulseCount.fetch_sub(1);
+        else pulseCount.fetch_add(1);
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+      prevA = a;
+      prevB = b;
+
+      std::this_thread::sleep_for(std::chrono::microseconds(500));
     }
   });
-}
-
-void MotorController::updateEncoder() {
-  bool a = gpio.getDigitalInput(ENCODER_A);
-  bool b = gpio.getDigitalInput(ENCODER_B);
-
-  if (a && !prevA) {
-    if (b) pulseCount.fetch_sub(1);
-    else pulseCount.fetch_add(1);
-  }
-
-  prevA = a;
-  prevB = b;
 }
 
 void MotorController::calibrate() {
@@ -56,8 +46,7 @@ void MotorController::calibrate() {
 
   setBackward(CALIBRATION_SPEED);
   while (!gpio.getDigitalInput(MIN_SENSOR)) {
-    updateEncoder();
-    usleep(10000);
+    usleep(1000);
   }
   std::cout << "Minimum limit" << std::endl;
   brake();
@@ -65,8 +54,7 @@ void MotorController::calibrate() {
 
   setForward(CALIBRATION_SPEED);
   while (!gpio.getDigitalInput(MAX_SENSOR)) {
-    updateEncoder();
-    usleep(10000);
+    usleep(1000);
   }
   std::cout << "Maximum limit" << std::endl;
   brake();
@@ -78,7 +66,7 @@ void MotorController::calibrate() {
   if (trackLengthInPulses == 0 || trackLengthInCM == 0)
     std::cerr << "Calibration error" << std::endl;
 
-  const double cmPerPulse = static_cast<double>(trackLengthInCM) / trackLengthInPulses;
+  cmPerPulse = static_cast<double>(trackLengthInCM) / trackLengthInPulses;
   const long long int marginPulses = static_cast<long long int>(DIST_FROM_LIMIT_CM / cmPerPulse);
 
   virtualMinLimit = marginPulses;
@@ -87,17 +75,15 @@ void MotorController::calibrate() {
 
   std::cout << "Minimum virtual limit set at: " << virtualMinLimit << " pulses" << std::endl;
   std::cout << "Maximum virtual limit set at: " << virtualMaxLimit << " pulses" << std::endl;
-
+  std::cout << "CM per pulse: " << cmPerPulse << std::endl;
 
   // isso aqui é pra fazer ele voltar a posição inicial já prevendo a parede virtual, o prblema é q ele desliga o motor mas a inercia faz ele continuar andando e passa
   setBackward(CALIBRATION_SPEED);
   while (pulseCount.load() > virtualMinLimit) {
-    updateEncoder();
-    usleep(10000);
+    usleep(1000);
   }
   brake();
 }
-
 
 void MotorController::setFree() {
   gpio.setDigitalOutput(DIR1, false);
@@ -121,6 +107,8 @@ void MotorController::setBackward(int inputSpeed) {
 void MotorController::brake() {
   gpio.setDigitalOutput(DIR1, true);
   gpio.setDigitalOutput(DIR2, true);
+  gpio.setPWMOutput(PWM_OUT, 1023);
+  usleep(50000);
   gpio.setPWMOutput(PWM_OUT, 0);
   speed = 0;
 }
@@ -139,6 +127,34 @@ long long int MotorController::getEncoderCount() const {
 
 void MotorController::resetEncoderCount() {
   pulseCount.store(0);
+}
+
+motorData MotorController::getMotorData() {
+  const long long lastPulse = pulseCount.load();
+  const auto lastTime = std::chrono::steady_clock::now();
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+  const long long currentPulse = pulseCount.load();
+  const auto currentTime = std::chrono::steady_clock::now();
+  const long long deltaPulses = currentPulse - lastPulse;
+  const double elapsedSeconds = std::chrono::duration<double>(currentTime - lastTime).count();
+  const double deltaCM = deltaPulses * cmPerPulse;
+  const double speed_mps = (deltaCM / 100.0) / elapsedSeconds;
+  const double totalDistanceMeters = (currentPulse * cmPerPulse) / 100.0;
+
+  return motorData{
+    .speed = static_cast<float>(speed_mps),
+    .distance = static_cast<float>(totalDistanceMeters)
+  };
+}
+
+bool MotorController::onForwardLimit() {
+  return pulseCount.load() > virtualMaxLimit;
+}
+
+bool MotorController::onBackwardLimit() {
+  return pulseCount.load() < virtualMinLimit;
 }
 
 MotorController::~MotorController() {
