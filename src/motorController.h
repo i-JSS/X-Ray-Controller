@@ -1,6 +1,5 @@
 #include "gpioController.h"
 #include "pidController.h"
-#include <algorithm>
 #include <atomic>
 #include <thread>
 
@@ -10,6 +9,25 @@ struct motorData {
 };
 
 class MotorController {
+public:
+  MotorController(int PWM, int DIR1, int DIR2, int ENCODER_A, int ENCODER_B, int MIN_SENSOR, int MAX_SENSOR, int trackLengthInCM, int speed);
+  void init();
+  void calibrate();
+  void setForward() const;
+  void setBackward() const;
+  void brake() const;
+  void resetEncoderCount();
+  motorData getMotorData() const;
+  bool onForwardLimit() const;
+  bool onBackwardLimit() const;
+  ~MotorController();
+
+private:
+  long long int virtualMinLimit;
+  long long int virtualMaxLimit;
+  bool prevA = false;
+  bool prevB = false;
+  double cmPerPulse;
   PIDController pidController;
   GPIOController &gpio = GPIOController::getInstance();
   const int PWM_OUT;
@@ -19,34 +37,10 @@ class MotorController {
   const int ENCODER_B;
   const int MIN_SENSOR;
   const int MAX_SENSOR;
-  int speed = 0;
   std::atomic<long long int> pulseCount{0};
   std::thread encoderThread;
   long long int trackLengthInPulses = -1;
   int trackLengthInCM;
   std::atomic<bool> stopEncoder{false};
-
-public:
-  MotorController(int PWM, int DIR1, int DIR2, int ENCODER_A, int ENCODER_B, int MIN_SENSOR, int MAX_SENSOR, int trackLengthInCM);
-  void init();
-  void calibrate();
-  void setFree();
-  void setForward(int inputSpeed);
-  void setBackward(int inputSpeed);
-  void brake();
-  void setSpeed(int inputSpeed);
-  int getSpeed() const;
-  long long int getEncoderCount() const;
-  void resetEncoderCount();
-  motorData getMotorData();
-  bool onForwardLimit();
-  bool onBackwardLimit();
-  ~MotorController();
-
-private:
-  long long int virtualMinLimit = 13;
-  long long int virtualMaxLimit = 1237;
-  bool prevA = false;
-  bool prevB = false;
-  double cmPerPulse = 0.24;
+  int speed;
 };

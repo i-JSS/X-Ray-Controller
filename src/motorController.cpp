@@ -1,13 +1,12 @@
 #include "motorController.h"
 #include "gpioController.h"
-#include <algorithm>
 #include <thread>
 #include <unistd.h>
 #include <iostream>
 
-MotorController::MotorController(int PWM, int DIR1, int DIR2, int ENCODER_A, int ENCODER_B, int MIN_SENSOR, int MAX_SENSOR, int trackLengthInCM)
+MotorController::MotorController(int PWM, int DIR1, int DIR2, int ENCODER_A, int ENCODER_B, int MIN_SENSOR, int MAX_SENSOR, int trackLengthInCM, int speed)
     : PWM_OUT(PWM), DIR1(DIR1), DIR2(DIR2), ENCODER_A(ENCODER_A), ENCODER_B(ENCODER_B),
-      MIN_SENSOR(MIN_SENSOR), MAX_SENSOR(MAX_SENSOR), trackLengthInCM(trackLengthInCM) {
+      MIN_SENSOR(MIN_SENSOR), MAX_SENSOR(MAX_SENSOR), trackLengthInCM(trackLengthInCM), speed(speed) {
   gpio.configurePWMPin(PWM_OUT);
   gpio.configureOutputPin(DIR1);
   gpio.configureOutputPin(DIR2);
@@ -16,6 +15,7 @@ MotorController::MotorController(int PWM, int DIR1, int DIR2, int ENCODER_A, int
   gpio.configureInputPin(MIN_SENSOR);
   gpio.configureInputPin(MAX_SENSOR);
   init();
+  calibrate();
 }
 
 void MotorController::init() {
@@ -26,45 +26,36 @@ void MotorController::init() {
     while (!stopEncoder.load()) {
       bool a = gpio.getDigitalInput(ENCODER_A);
       bool b = gpio.getDigitalInput(ENCODER_B);
-
       if (a && !prevA) {
         if (b) pulseCount.fetch_sub(1);
         else pulseCount.fetch_add(1);
       }
-
       prevA = a;
       prevB = b;
-
       std::this_thread::sleep_for(std::chrono::microseconds(500));
     }
   });
 }
 
 void MotorController::calibrate() {
-  constexpr int CALIBRATION_SPEED = 300;
   constexpr int DIST_FROM_LIMIT_CM = 3;
 
-  setBackward(CALIBRATION_SPEED);
+  setBackward();
   while (!gpio.getDigitalInput(MIN_SENSOR)) {
     usleep(1000);
   }
-  std::cout << "Minimum limit" << std::endl;
   brake();
   resetEncoderCount();
 
-  setForward(CALIBRATION_SPEED);
+  setForward();
   while (!gpio.getDigitalInput(MAX_SENSOR)) {
     usleep(1000);
   }
-  std::cout << "Maximum limit" << std::endl;
   brake();
-
   trackLengthInPulses = pulseCount.load();
-  std::cout << "Total pulses counted: " << trackLengthInPulses << std::endl;
-  std::cout << "length (cm): " << trackLengthInCM << std::endl;
 
   if (trackLengthInPulses == 0 || trackLengthInCM == 0)
-    std::cerr << "Calibration error" << std::endl;
+    throw std::runtime_error("Calibration error");
 
   cmPerPulse = static_cast<double>(trackLengthInCM) / trackLengthInPulses;
   const long long int marginPulses = static_cast<long long int>(DIST_FROM_LIMIT_CM / cmPerPulse);
@@ -72,64 +63,46 @@ void MotorController::calibrate() {
   virtualMinLimit = marginPulses;
   virtualMaxLimit = trackLengthInPulses - marginPulses;
 
-
+#ifdef DEBUG
+  std::cout << "Total pulses counted: " << trackLengthInPulses << std::endl;
+  std::cout << "length (cm): " << trackLengthInCM << std::endl;
   std::cout << "Minimum virtual limit set at: " << virtualMinLimit << " pulses" << std::endl;
   std::cout << "Maximum virtual limit set at: " << virtualMaxLimit << " pulses" << std::endl;
   std::cout << "CM per pulse: " << cmPerPulse << std::endl;
-
-  // isso aqui é pra fazer ele voltar a posição inicial já prevendo a parede virtual, o prblema é q ele desliga o motor mas a inercia faz ele continuar andando e passa
-  setBackward(CALIBRATION_SPEED);
+#endif
+  // Movendo para a posição inicial respeitando o limite virtual
+  setBackward();
   while (pulseCount.load() > virtualMinLimit) {
     usleep(1000);
   }
   brake();
 }
 
-void MotorController::setFree() {
-  gpio.setDigitalOutput(DIR1, false);
-  gpio.setDigitalOutput(DIR2, false);
-  gpio.setPWMOutput(PWM_OUT, 0);
-  speed = 0;
-}
-
-void MotorController::setForward(int inputSpeed) {
+void MotorController::setForward() const {
   gpio.setDigitalOutput(DIR1, true);
   gpio.setDigitalOutput(DIR2, false);
-  gpio.setPWMOutput(PWM_OUT, inputSpeed);
+  gpio.setPWMOutput(PWM_OUT, speed);
 }
 
-void MotorController::setBackward(int inputSpeed) {
+void MotorController::setBackward() const {
   gpio.setDigitalOutput(DIR1, false);
   gpio.setDigitalOutput(DIR2, true);
-  gpio.setPWMOutput(PWM_OUT, inputSpeed);
+  gpio.setPWMOutput(PWM_OUT, speed);
 }
 
-void MotorController::brake() {
+void MotorController::brake() const {
   gpio.setDigitalOutput(DIR1, true);
   gpio.setDigitalOutput(DIR2, true);
   gpio.setPWMOutput(PWM_OUT, 1023);
   usleep(50000);
   gpio.setPWMOutput(PWM_OUT, 0);
-  speed = 0;
-}
-
-void MotorController::setSpeed(int inputSpeed) {
-  gpio.setPWMOutput(PWM_OUT, inputSpeed);
-}
-
-int MotorController::getSpeed() const {
-  return speed;
-}
-
-long long int MotorController::getEncoderCount() const {
-  return pulseCount.load();
 }
 
 void MotorController::resetEncoderCount() {
   pulseCount.store(0);
 }
 
-motorData MotorController::getMotorData() {
+motorData MotorController::getMotorData() const {
   const long long lastPulse = pulseCount.load();
   const auto lastTime = std::chrono::steady_clock::now();
 
@@ -149,11 +122,11 @@ motorData MotorController::getMotorData() {
   };
 }
 
-bool MotorController::onForwardLimit() {
+bool MotorController::onForwardLimit() const {
   return pulseCount.load() > virtualMaxLimit;
 }
 
-bool MotorController::onBackwardLimit() {
+bool MotorController::onBackwardLimit() const {
   return pulseCount.load() < virtualMinLimit;
 }
 
