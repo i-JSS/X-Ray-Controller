@@ -15,7 +15,6 @@ MotorController::MotorController(int PWM, int DIR1, int DIR2, int ENCODER_A, int
   gpio.configureInputPin(MIN_SENSOR);
   gpio.configureInputPin(MAX_SENSOR);
   init();
-  calibrate();
 }
 
 void MotorController::init() {
@@ -141,5 +140,5 @@ MotorController::~MotorController() {
   if (encoderThread.joinable()) {
     encoderThread.join();
   }
-  brake();
+  brake(true);
 }
