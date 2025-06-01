@@ -136,7 +136,7 @@ void ModbusController::write(SubCode espRegister, float value) {
   write(espRegister, std::span(dataPtr, sizeof(float)));
 }
 
-void ModbusController::write(SubCode espRegister, byte value) {
+void ModbusController::write(SubCode espRegister, std::byte value) {
   uint8_t valueAsUint8 = static_cast<uint8_t>(value);
   write(espRegister, std::span(&valueAsUint8, 1));
 }
