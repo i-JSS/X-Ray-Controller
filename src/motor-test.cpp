@@ -20,7 +20,7 @@ bool move(MotorController &motor, bool forward) {
 
   usleep(50000);
   motorData data = motor.getMotorData();
-  motor.brake();
+  motor.free();
   std::cout << "Distância: " << data.distance << " m | Velocidade: " << data.speed << " m/s" << std::endl;
   return false;
 }

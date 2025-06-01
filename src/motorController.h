@@ -16,6 +16,7 @@ public:
   void setForward() const;
   void setBackward() const;
   void brake() const;
+  void free() const;
   void resetEncoderCount();
   motorData getMotorData() const;
   bool onForwardLimit() const;

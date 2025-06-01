@@ -54,7 +54,7 @@ void move(MotorController &motor, bool forward, bool isXMotor) {
 
   usleep(50000);
   motorData data = motor.getMotorData();
-  motor.brake();
+  motor.free();
   modbus.write(speedRegister, data.speed);
   modbus.write(distanceRegister, data.distance);
 }
