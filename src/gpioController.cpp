@@ -39,7 +39,7 @@ void GPIOController::configurePWMPin(int pin) {
   if (getExistingPin(pin))
     throw std::runtime_error("Pin" + std::to_string(pin) + " is already configured.");
 
-  softPwmCreate(pin, 0, 1023);
+  softPwmCreate(pin, 0, 100);
 
   Pin pwmPin = {pin, Mode::PWM_OUT};
   configuredPins.push_back(pwmPin);
@@ -56,7 +56,7 @@ void GPIOController::configureInterrupt(int pin, void (*handle)(void)) {
 }
 
 void GPIOController::setPWMOutput(int pin, int value) {
-  int pwmValue = std::clamp(value, 0, 1023);
+  int pwmValue = std::clamp(value, 0, 100);
   softPwmWrite(pin, pwmValue);
 }
 
