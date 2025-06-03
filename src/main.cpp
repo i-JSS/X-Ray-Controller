@@ -6,6 +6,8 @@
 #include <ostream>
 #include <unistd.h>
 
+INITIALIZE_EASYLOGGINGPP
+
 ModbusController modbus("/dev/serial0", B115200);
 bmp280Controller bmp280;
 
@@ -36,7 +38,6 @@ std::ostream &operator<<(ostream &os, const bmp280Data &state) {
 }
 
 int main(int argc, char *argv[]) {
-  START_EASYLOGGINGPP(argc, argv);
   struct sigaction sa;
   sa.sa_handler = handler;
   sigfillset(&sa.sa_mask);
