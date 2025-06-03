@@ -19,4 +19,8 @@ botões -> Usuário pode apertar os botões ao mesmo tempo,
 quando os dois estiverem apertados o programa não vai fazer nada,
 mas alguns botões físicos podem ter gangorra (direcional do xbox 360)
 
-Configuração deveria ter proteção em hardware (Modbus)
+Cinemática -> descrever todo o sistema de coordenadas em todos os eixos
+para relacionar as equações de posição 3d em cada um dos eixos, mapeando
+as equações (matrizes), cinemática inversa para movimentar um robô não
+cartesiano para um sistema cartesiano, cada ponto calcular a posição dos
+eixos para cada ponto na sequência
