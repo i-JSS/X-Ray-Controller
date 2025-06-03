@@ -119,7 +119,7 @@ void ModbusController::init() {
 }
 
 void ModbusController::clearRegisters(SubCode espRegister, int bytesToClear) {
-  LOG(INFO) << "Clearing" << bytesToClear << " bytes for ESP register: "
+  LOG(INFO) << "Clearing " << bytesToClear << " bytes for ESP register: "
             << static_cast<int>(espRegister);
 
   std::vector<uint8_t> clearData(bytesToClear, 0);

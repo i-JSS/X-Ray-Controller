@@ -43,7 +43,7 @@ void UARTController::send(span<const uint8_t> data) {
   if (count < 0 || count != static_cast<int>(data.size()))
     throw std::system_error(errno, std::generic_category(),
                             "Erro ao escrever na porta serial");
-  LOG(INFO) << "Message sent succesfully" << count << " bytes";
+  LOG(INFO) << "Message sent succesfully " << count << " bytes";
 }
 
 void UARTController::send(const vector<uint8_t> &data) {
