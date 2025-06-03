@@ -35,8 +35,13 @@ MotorController motorY(MOTOR_Y_PWM,MOTOR_Y_DIR1,MOTOR_Y_DIR2,ENCODER_Y_A,ENCODER
 
 void calibrate() {
   modbus.write(ModbusController::SubCode::REG_MACHINE_STATE, 0x01);
-  motorX.calibrate();
-  motorY.calibrate();
+
+  std::thread t1([] { motorX.calibrate(); });
+  std::thread t2([] { motorY.calibrate(); });
+
+  t1.join();
+  t2.join();
+
   modbus.write(ModbusController::SubCode::REG_MACHINE_STATE, 0x00);
 }
 
@@ -129,7 +134,6 @@ void configurePins() {
   gpio.configureInputPin(BOTAO_BAIXO);
   gpio.configureInputPin(BOTAO_ESQ);
   gpio.configureInputPin(BOTAO_DIR);
-
 }
 
 struct botao {
@@ -164,44 +168,51 @@ int main() {
     botao{BOTAO_ESQ, "Esquerda", false},
     botao{BOTAO_DIR, "Direita", false}};
 
+  bool botaoPressionado = false;
+  int pinoBotaoPressionado = -1;
+
   while (true) {
+    botaoPressionado = false;
     for (auto &botao : botoes) {
       bool estadoAtual = digitalRead(botao.pino);
+
       if (estadoAtual != botao.estado) {
         botao.estado = estadoAtual;
 
         if (estadoAtual) {
           std::cout << "Botão " << botao.nome << " pressionado!" << std::endl;
-
-          if (botao.pino == BOTAO_CIMA) {
-            move(motorY, true, false);
-            ultimaPosicaoY = motorY.getMotorData().distance;
-          } else if (botao.pino == BOTAO_BAIXO) {
-            move(motorY, false, false);
-            ultimaPosicaoY = motorY.getMotorData().distance;
-          } else if (botao.pino == BOTAO_DIR) {
-            move(motorX, true, true);
-            ultimaPosicaoX = motorX.getMotorData().distance;
-          } else if (botao.pino == BOTAO_ESQ) {
-            move(motorX, false, true);
-            ultimaPosicaoX = motorX.getMotorData().distance;
-          }
-
-        } else {
-          std::cout << "Botão " << botao.nome << " liberado!" << std::endl;
-          std::cout << "movendo para" << ultimaPosicaoX << ", " << ultimaPosicaoY << std::endl;
-          if (botao.pino == BOTAO_CIMA || botao.pino == BOTAO_BAIXO) {
-            moveToPosition(motorY, ultimaPosicaoY, false);
-          } else if (botao.pino == BOTAO_DIR || botao.pino == BOTAO_ESQ) {
-            moveToPosition(motorX, ultimaPosicaoX, true);
-          }
+          pinoBotaoPressionado = botao.pino;
         }
+        else {
+          std::cout << "Botão " << botao.nome << " liberado!" << std::endl;
+
+          if (botao.pino == BOTAO_CIMA || botao.pino == BOTAO_BAIXO)
+            moveToPosition(motorY, ultimaPosicaoY, false);
+          else if (botao.pino == BOTAO_DIR || botao.pino == BOTAO_ESQ)
+            moveToPosition(motorX, ultimaPosicaoX, true);
+
+          if (botao.pino == pinoBotaoPressionado)
+            pinoBotaoPressionado = -1;
+        }
+      }
+      if (estadoAtual) {
+        botaoPressionado = true;
+        pinoBotaoPressionado = botao.pino;
       }
     }
 
-    usleep(50000);
+    if (botaoPressionado) {
+      if (pinoBotaoPressionado == BOTAO_CIMA)
+        move(motorY, true, false);
+      else if (pinoBotaoPressionado == BOTAO_BAIXO)
+        move(motorY, false, false);
+      else if (pinoBotaoPressionado == BOTAO_DIR)
+        move(motorX, true, true);
+      else if (pinoBotaoPressionado == BOTAO_ESQ)
+        move(motorX, false, true);
+    }
+    delay(50);
   }
-
   return 0;
 }
 
