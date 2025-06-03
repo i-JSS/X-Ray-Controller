@@ -21,19 +21,18 @@ std::ostream &operator<<(ostream &os, const ModbusController::RegisterState &sta
   os << "Movendo:    LEFT=" << state.isMoving[0]
      << " RIGHT=" << state.isMoving[1]
      << " UP=" << state.isMoving[2]
-     << " DOWN=" << state.isMoving[3] << "\n";
+     << " DOWN=" << state.isMoving[3] << " | ";
   os << "Preset:     P1=" << state.readingPreset[0]
      << " P2=" << state.readingPreset[1]
      << " P3=" << state.readingPreset[2]
      << " P4=" << state.readingPreset[3]
-     << " | Configurando?=" << state.isSettingPreset << "\n";
-  os << "Calibrando?: " << state.isCalibrating << "\n";
+     << " Configurando?=" << state.isSettingPreset << " | ";
+  os << "Calibrando?: " << state.isCalibrating;
   return os;
 }
 
 std::ostream &operator<<(ostream &os, const bmp280Data &state) {
-  os << "Temperature: " << state.temperature << "ºC\n";
-  os << "Pressure: " << state.pressure << "hPA\n";
+  os << "Temperature: " << state.temperature << "ºC | Pressure: " << state.pressure << "hPA";
   return os;
 }
 
@@ -50,7 +49,7 @@ int main(int argc, char *argv[]) {
   while (true) {
     try {
       auto sensorState = bmp280.readData();
-      std::cout << modbus.readRegisters() << sensorState;
+      LOG(INFO) << modbus.readRegisters() << sensorState;
 
       modbus.write(ModbusController::SubCode::TEMP, sensorState.temperature);
       modbus.write(ModbusController::SubCode::PRESSURE, sensorState.pressure);
