@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <fcntl.h>
+#include <fstream>
 #include <span>
 #include <stdexcept>
 #include <sys/types.h>
@@ -90,21 +91,15 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   auto response = makeRequest(readMessage);
   int offset = 2;
 
-  state.isMoving[0] = response[offset] & 0x01;
-  state.isMoving[1] = response[offset] & 0x02;
-
-  // Próximo
-  offset++;
-
-  state.isMoving[2] = response[offset] & 0x01;
-  state.isMoving[3] = response[offset] & 0x02;
-
-  offset++;
-
-  state.readingPreset[0] = response[offset] & 0x01;
-  state.readingPreset[1] = response[offset] & 0x02;
-  state.readingPreset[2] = response[offset] & 0x04;
-  state.readingPreset[3] = response[offset] & 0x08;
+  int moveByte = (response[offset + 1] << 8) | response[offset];
+  offset += 2;
+  uint8_t presetByte = response[offset++];
+  for (int i = 0; i < 4; i++) {
+    int currentMask = 1 << i;
+    state.isMoving[i] = moveByte & currentMask;
+    if (presetByte & currentMask)
+      state.selectedPreset = i + 1;
+  }
 
   state.isCalibrating = response[offset++];
   state.isSettingPreset = response[offset++];
