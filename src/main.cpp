@@ -6,7 +6,6 @@
 #include <cmath>
 #include <map>
 #include <thread>
-#include <atomic>
 
 #include "modbusController.h"
 #include "bmp280Controller.h"
@@ -31,7 +30,7 @@ void updateBMP280(){
 // ------------ MOTORS ------------
 
 MotorController motorX(MOTOR_X_PWM,MOTOR_X_DIR1,MOTOR_X_DIR2,ENCODER_X_A,ENCODER_X_B,SENSOR_X_MIN,SENSOR_X_MAX,300,70);
-MotorController motorY(MOTOR_Y_PWM,MOTOR_Y_DIR1,MOTOR_Y_DIR2,ENCODER_Y_A,ENCODER_Y_B,SENSOR_Y_MIN,SENSOR_Y_MAX,300,70);
+MotorController motorY(MOTOR_Y_PWM,MOTOR_Y_DIR1,MOTOR_Y_DIR2,ENCODER_Y_A,ENCODER_Y_B,SENSOR_Y_MIN,SENSOR_Y_MAX,180,70);
 
 void calibrate() {
   modbus.write(ModbusController::SubCode::REG_MACHINE_STATE, 0x01);
@@ -51,6 +50,7 @@ void move(MotorController &motor, bool forward, bool isXMotor) {
   const bool limitReached = forward ? motor.onForwardLimit() : motor.onBackwardLimit();
   const ModbusController::SubCode speedRegister = isXMotor ? ModbusController::SubCode::REG_SPEED_X : ModbusController::SubCode::REG_SPEED_Y;
   const ModbusController::SubCode distanceRegister = isXMotor ? ModbusController::SubCode::REG_POSITION_X : ModbusController::SubCode::REG_POSITION_Y;
+  // ADICIONAR A REDUÇÃO DE VELOCIDADE AQUI (ESPERAR O FREIO FUNCIONAR)
   if (limitReached) return;
 
   if (forward) motor.setForward();
@@ -115,13 +115,16 @@ struct position {
 array<position, 4> predefinedPositions = {};
 
 void savePredefinedPosition(int position) {
-  predefinedPositions[position] = {motorX.getMotorData().distance, motorY.getMotorData().distance};
+  predefinedPositions[position] = {ultimaPosicaoX, ultimaPosicaoY};
 }
 
 void goToPredefinedPosition(int position) {
-  if (predefinedPositions[position].x != 0 && predefinedPositions[position].y != 0) {
-    moveToPosition(motorX, predefinedPositions[position].x, true);
-    moveToPosition(motorY, predefinedPositions[position].y, false);
+  const auto&[x, y] = predefinedPositions[position];
+  if (x != 0 && y != 0) {
+    std::thread t1([&] { moveToPosition(motorX, x, true); });
+    std::thread t2([&] { moveToPosition(motorY, y, false); });
+    t1.join();
+    t2.join();
   }
 }
 
@@ -136,19 +139,47 @@ void configurePins() {
   gpio.configureInputPin(BOTAO_DIR);
 }
 
-struct botao {
-  int pino;
-  std::string nome;
-  bool estado;
-};
+// ------------ MOVIMENTAÇÃO ------------
+
+void behavior(const ModbusController::RegisterState registers) {
+  if (gpio.getDigitalInput(BOTAO_CIMA) || registers.isMoving[0]) {
+    move(motorY, true, false);
+  } else if (gpio.getDigitalInput(BOTAO_BAIXO) || registers.isMoving[1]) {
+    move(motorY, false, false);
+  } else if (gpio.getDigitalInput(BOTAO_ESQ) || registers.isMoving[2]) {
+    move(motorX, false, true);
+  } else if (gpio.getDigitalInput(BOTAO_DIR) || registers.isMoving[3]) {
+    move(motorX, true, true);
+  }
+}
+
+bool usingPreset = false;
+
+void preset(const ModbusController::RegisterState registers) {
+  if (registers.isSettingPreset) {
+    usingPreset = true;
+    return;
+  }
+  if (usingPreset) {
+    for (int i = 0; i < 4; ++i)
+      if (registers.readingPreset[i])
+        savePredefinedPosition(i);
+        usingPreset = false;
+        return;
+  }
+  for (int i = 0; i < 4; ++i)
+    if (registers.readingPreset[i])
+      goToPredefinedPosition(i);
+}
 
 // ------------ MAIN ------------
 
 void emergencyHandler() {
+  // LIMPART UART
   modbus.ensureClosed();
   bmp280.close();
-  moveToPosition(motorX, ultimaPosicaoX, true);
-  moveToPosition(motorY, ultimaPosicaoY, false);
+  // moveToPosition(motorX, ultimaPosicaoX, true);
+  // moveToPosition(motorY, ultimaPosicaoY, false);
   std::cout << "Botão de emergência acionado! Fechando tudo..." << std::endl;
   exit(0);
 }
@@ -160,59 +191,20 @@ void signalHandler(int) {
 int main() {
   signal(SIGINT, signalHandler);
   gpio.configureInterrupt(BOTAO_EMERGENCIA, emergencyHandler);
+  configurePins();
+
+  updateBMP280();
+  // LIMPART UART
   calibrate();
-
-  std::array<botao, 4> botoes = {
-    botao{BOTAO_CIMA, "Cima", false},
-    botao{BOTAO_BAIXO, "Baixo", false},
-    botao{BOTAO_ESQ, "Esquerda", false},
-    botao{BOTAO_DIR, "Direita", false}};
-
-  bool botaoPressionado = false;
-  int pinoBotaoPressionado = -1;
-
   while (true) {
-    botaoPressionado = false;
-    for (auto &botao : botoes) {
-      bool estadoAtual = digitalRead(botao.pino);
-
-      if (estadoAtual != botao.estado) {
-        botao.estado = estadoAtual;
-
-        if (estadoAtual) {
-          std::cout << "Botão " << botao.nome << " pressionado!" << std::endl;
-          pinoBotaoPressionado = botao.pino;
-        }
-        else {
-          std::cout << "Botão " << botao.nome << " liberado!" << std::endl;
-
-          if (botao.pino == BOTAO_CIMA || botao.pino == BOTAO_BAIXO)
-            moveToPosition(motorY, ultimaPosicaoY, false);
-          else if (botao.pino == BOTAO_DIR || botao.pino == BOTAO_ESQ)
-            moveToPosition(motorX, ultimaPosicaoX, true);
-
-          if (botao.pino == pinoBotaoPressionado)
-            pinoBotaoPressionado = -1;
-        }
-      }
-      if (estadoAtual) {
-        botaoPressionado = true;
-        pinoBotaoPressionado = botao.pino;
-      }
-    }
-
-    if (botaoPressionado) {
-      if (pinoBotaoPressionado == BOTAO_CIMA)
-        move(motorY, true, false);
-      else if (pinoBotaoPressionado == BOTAO_BAIXO)
-        move(motorY, false, false);
-      else if (pinoBotaoPressionado == BOTAO_DIR)
-        move(motorX, true, true);
-      else if (pinoBotaoPressionado == BOTAO_ESQ)
-        move(motorX, false, true);
-    }
-    delay(50);
+    updateBMP280();
+    auto registers = modbus.readRegisters();
+    if (registers.isCalibrating) calibrate();
+    preset(registers);
+    behavior(registers);
+    // NAO TEM BOTAO DE CAPTURA SO UM LED INDICANDO
+    // if (gpio.setDigitalOutput(CAPTURA, true)) std::cout << "Capturado!" << std::endl;
+    // LIMPART UART
   }
   return 0;
 }
-
