@@ -44,7 +44,7 @@ void calibrate() {
   modbus.write(ModbusController::SubCode::REG_MACHINE_STATE, 0x00);
 }
 
-float ultimaPosicaoX = 0.0f, ultimaPosicaoY = 0.0f;
+float lastPositionX = 0.0f, lastPositionY = 0.0f;
 
 void move(MotorController &motor, bool forward, bool isXMotor) {
   const bool limitReached = forward ? motor.onForwardLimit() : motor.onBackwardLimit();
@@ -60,11 +60,12 @@ void move(MotorController &motor, bool forward, bool isXMotor) {
   motorData data = motor.getMotorData();
   motor.brake();
   std::cout << "Distância: " << data.distance << " m | Velocidade: " << data.speed << " m/s" << std::endl;
-  modbus.write(speedRegister, data.speed);
+  // arredonda pois 40% do tempo a velocidade fica 0.078 e mostra zero no dashboard
+  modbus.write(speedRegister, (data.speed + 0.03f));
   modbus.write(distanceRegister, data.distance);
 
-  if (isXMotor) ultimaPosicaoX = data.distance;
-  else ultimaPosicaoY = data.distance;
+  if (isXMotor) lastPositionX = data.distance;
+  else lastPositionY = data.distance;
 }
 
 void moveToPosition(MotorController& motor, float targetPosition, bool isXMotor) {
@@ -101,7 +102,7 @@ void moveToPosition(MotorController& motor, float targetPosition, bool isXMotor)
   std::cout << "Distância: " << data.distance << " m | Velocidade: " << data.speed << " m/s" << std::endl;
 #endif
 
-  modbus.write(speedRegister, data.speed);
+  modbus.write(speedRegister, (data.speed + 0.03f));
   modbus.write(distanceRegister, data.distance);
 }
 
@@ -115,7 +116,7 @@ struct position {
 array<position, 4> predefinedPositions = {};
 
 void savePredefinedPosition(int position) {
-  predefinedPositions[position] = {ultimaPosicaoX, ultimaPosicaoY};
+  predefinedPositions[position] = {lastPositionX, lastPositionY};
 }
 
 void goToPredefinedPosition(int position) {
@@ -180,7 +181,7 @@ void emergencyHandler() {
   bmp280.close();
   // moveToPosition(motorX, ultimaPosicaoX, true);
   // moveToPosition(motorY, ultimaPosicaoY, false);
-  std::cout << "Botão de emergência acionado! Fechando tudo..." << std::endl;
+  std::cout << "Closing everything..." << std::endl;
   exit(0);
 }
 
