@@ -20,7 +20,7 @@ target_link_libraries(gpio_lib ${WIRINGPI_LIB})
 target_link_libraries(motor_lib gpio_lib Threads::Threads atomic)
 
 add_executable(main ${SRC_DIR}/main.cpp)
-target_link_libraries(main gpio_lib modbus_lib sensor_lib motor_lib)
+target_link_libraries(main gpio_lib modbus_lib sensor_lib motor_lib pid_lib)
 
 add_executable(motor-test ${SRC_DIR}/motor-test.cpp)
 target_link_libraries(motor-test motor_lib)
