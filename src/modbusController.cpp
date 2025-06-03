@@ -62,8 +62,7 @@ bool ModbusController::isValidCRC(const unsigned char *buffer, int length) {
 
 std::vector<uint8_t> ModbusController::makeRequest(Message &message) {
   auto builtMessage = message.build();
-  LOG(INFO) << "Sending Modbus message: "
-            << std::string(builtMessage.begin(), builtMessage.end());
+  LOG(INFO) << "Sending Modbus message: ";
   uart_.ensureOpen();
   uart_.send(message.build());
   uart_.sync();
@@ -72,8 +71,7 @@ std::vector<uint8_t> ModbusController::makeRequest(Message &message) {
 
   auto response = uart_.read(256);
 
-  LOG(INFO) << "Received Modbus response: "
-            << std::string(response.begin(), response.end());
+  LOG(INFO) << "Received Modbus response";
 
   if (!isValidCRC(response.data(), response.size())) {
     uart_.ensureClosed();
