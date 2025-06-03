@@ -3,7 +3,6 @@
 #include <csignal>
 #include <iostream>
 #include <ostream>
-#include <sstream>
 #include <unistd.h>
 
 ModbusController modbus("/dev/serial0", B115200);
@@ -29,6 +28,12 @@ std::ostream &operator<<(ostream &os, const ModbusController::RegisterState &sta
   return os;
 }
 
+std::ostream &operator<<(ostream &os, const bmp280Data &state) {
+  os << "Temperature: " << state.temperature << "ºC\n";
+  os << "Pressure: " << state.pressure << "hPA\n";
+  return os;
+}
+
 int main() {
   struct sigaction sa;
   sa.sa_handler = handler;
@@ -41,18 +46,8 @@ int main() {
   modbus.init();
   while (true) {
     try {
-      auto screenState = modbus.readRegisters();
       auto sensorState = bmp280.readData();
-
-      std::cout << "\033[H\033[J";
-
-      std::ostringstream output;
-      output << screenState;
-      output << "Temperature: " << sensorState.temperature << "ºC\n";
-      output << "Pressure: " << sensorState.pressure << "hPA\n";
-
-      std::cout << output.str();
-      std::cout.flush();
+      std::cout << modbus.readRegisters() << sensorState;
 
       modbus.write(ModbusController::SubCode::TEMP, sensorState.temperature);
       modbus.write(ModbusController::SubCode::PRESSURE, sensorState.pressure);
