@@ -18,3 +18,5 @@ wiringPiSetup -> Considera numeração da wiringPi
 botões -> Usuário pode apertar os botões ao mesmo tempo,
 quando os dois estiverem apertados o programa não vai fazer nada,
 mas alguns botões físicos podem ter gangorra (direcional do xbox 360)
+
+Configuração deveria ter proteção em hardware (Modbus)
