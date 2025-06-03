@@ -9,3 +9,5 @@ VSCode abre servidor node para usar ssh e enxe a raspberry pi
 
 Inicialização: vai ter um botão de reset da placa em todos os dashboards,
 programa auxiliar pra escrever zero nas gpios antes de utilizar o botão.
+
+O dashboard web só atualiza com frequência de 0.5 segundos

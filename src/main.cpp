@@ -1,4 +1,5 @@
 #include "bmp280Controller.h"
+#include "easylogging++.h"
 #include "modbusController.h"
 #include <csignal>
 #include <iostream>
@@ -34,7 +35,8 @@ std::ostream &operator<<(ostream &os, const bmp280Data &state) {
   return os;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+  START_EASYLOGGINGPP(argc, argv);
   struct sigaction sa;
   sa.sa_handler = handler;
   sigfillset(&sa.sa_mask);
