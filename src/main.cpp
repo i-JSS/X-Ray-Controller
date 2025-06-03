@@ -21,7 +21,7 @@ std::ostream &operator<<(ostream &os, const ModbusController::RegisterState &sta
   os << "Movendo:    LEFT=" << state.isMoving[0]
      << " RIGHT=" << state.isMoving[1]
      << " UP=" << state.isMoving[2]
-     << " DOWN=" << state.isMoving[3] << " | ";
+     << " DOWN=" << state.isMoving[3] << " ";
   os << "Preset:     P1=" << state.readingPreset[0]
      << " P2=" << state.readingPreset[1]
      << " P3=" << state.readingPreset[2]

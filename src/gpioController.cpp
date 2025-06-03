@@ -1,4 +1,5 @@
 #include "gpioController.h"
+#include "easylogging++.h"
 #include <algorithm>
 #include <functional>
 #include <vector>
@@ -15,6 +16,7 @@ const GPIOController::Pin *GPIOController::getExistingPin(int pin) {
 }
 
 void GPIOController::configureInputPin(int pin, std::function<void(void)> handle) {
+  LOG(INFO) << "Configuring pin: " << pin << " as input, " << handle == nullptr ? "no callback" : "with callback";
   if (getExistingPin(pin))
     throw std::runtime_error("Pin" + std::to_string(pin) + " is already configured.");
 
@@ -24,6 +26,7 @@ void GPIOController::configureInputPin(int pin, std::function<void(void)> handle
 }
 
 void GPIOController::configureOutputPin(int pin) {
+  LOG(INFO) << "Configuring pin: " << pin << " as output";
   if (getExistingPin(pin))
     throw std::runtime_error("Pin" + std::to_string(pin) + " is already configured.");
 
@@ -34,6 +37,7 @@ void GPIOController::configureOutputPin(int pin) {
 }
 
 void GPIOController::configurePWMPin(int pin) {
+  LOG(INFO) << "Configuring pin: " << pin << " as PWM output";
   if (getExistingPin(pin))
     throw std::runtime_error("Pin" + std::to_string(pin) + " is already configured.");
 
@@ -44,6 +48,7 @@ void GPIOController::configurePWMPin(int pin) {
 }
 
 void GPIOController::configureInterrupt(int pin, void (*handle)(void)) {
+  LOG(INFO) << "Configuring pin: " << pin << " as interrupt";
   if (getExistingPin(pin))
     throw std::runtime_error("Pin" + std::to_string(pin) + " is already configured.");
 
