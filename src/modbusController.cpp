@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <fcntl.h>
+#include <fstream>
 #include <span>
 #include <stdexcept>
 #include <sys/types.h>
@@ -105,11 +106,14 @@ ModbusController::RegisterState ModbusController::readRegisters() {
 
   offset++;
 
-  state.readingPreset[0] = response[offset] & 0x01;
-  state.readingPreset[1] = response[offset] & 0x02;
-  state.readingPreset[2] = response[offset] & 0x04;
-  state.readingPreset[3] = response[offset] & 0x08;
-
+  uint8_t presetByte = response[offset++];
+  if (presetByte) {
+    for (auto [id, bit] = std::pair{1, 1}; id < 4; ++id, bit <<= 2) {
+      if (presetByte & bit) {
+        state.isSettingPreset = id;
+      }
+    }
+  }
   state.isCalibrating = response[offset++];
   state.isSettingPreset = response[offset++];
 

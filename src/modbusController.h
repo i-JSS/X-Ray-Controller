@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <fcntl.h>
 #include <iostream>
+#include <optional>
 #include <span>
 #include <string>
 #include <sys/types.h>
@@ -35,7 +36,7 @@ public:
   };
   struct RegisterState {
     std::array<bool, 4> isMoving = {0, 0, 0, 0};
-    std::array<bool, 4> readingPreset = {0, 0, 0, 0};
+    std::optional<int> selectedPreset = std::nullopt;
     bool isCalibrating = false;
     bool isSettingPreset = false;
   };
