@@ -95,28 +95,18 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   auto response = makeRequest(readMessage);
   int offset = 2;
 
-  state.isMoving[0] = response[offset] & 0x01;
-  state.isMoving[1] = response[offset] & 0x02;
-
-  // Próximo
-  offset++;
-
-  state.isMoving[2] = response[offset] & 0x01;
-  state.isMoving[3] = response[offset] & 0x02;
-
-  offset++;
-
+  int moveByte = (response[offset + 1] << 8) | response[offset];
+  offset += 2;
   uint8_t presetByte = response[offset++];
-  if (presetByte) {
-    for (auto [id, bit] = std::pair{1, 1}; id < 4; ++id, bit <<= 2) {
-      if (presetByte & bit) {
-        state.isSettingPreset = id;
-      }
-    }
+  for (int i = 0; i < 4; i++) {
+    int currentMask = 1 << i;
+    state.isMoving[i] = moveByte & currentMask;
+    if (presetByte & currentMask)
+      state.selectedPreset = i + 1;
   }
+
   state.isCalibrating = response[offset++];
   state.isSettingPreset = response[offset++];
-
   clearRegisters(SubCode::MOVE_X, 5);
   return state;
 }
