@@ -13,6 +13,7 @@ public:
   MotorController(int PWM, int DIR1, int DIR2, int ENCODER_A, int ENCODER_B, int MIN_SENSOR, int MAX_SENSOR, int trackLengthInCM, int speed);
   void init();
   void calibrate();
+
   void setForward() const;
   void setBackward() const;
   void brake() const;
@@ -22,6 +23,9 @@ public:
   bool onForwardLimit() const;
   bool onBackwardLimit() const;
   ~MotorController();
+
+  void setForward(float pwm) const;
+  void setBackward(float pwm) const;
 
 private:
   long long int virtualMinLimit;

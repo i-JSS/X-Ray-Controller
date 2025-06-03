@@ -77,16 +77,23 @@ void MotorController::calibrate() {
   brake();
 }
 
-void MotorController::setForward() const {
+void MotorController::setForward(float pwm) const {
   gpio.setDigitalOutput(DIR1, true);
   gpio.setDigitalOutput(DIR2, false);
-  gpio.setPWMOutput(PWM_OUT, speed);
+  gpio.setPWMOutput(PWM_OUT, pwm);
+}
+void MotorController::setForward() const {
+  setForward(speed);
+}
+
+void MotorController::setBackward(float pwm) const {
+  gpio.setDigitalOutput(DIR1, false);
+  gpio.setDigitalOutput(DIR2, true);
+  gpio.setPWMOutput(PWM_OUT, pwm);
 }
 
 void MotorController::setBackward() const {
-  gpio.setDigitalOutput(DIR1, false);
-  gpio.setDigitalOutput(DIR2, true);
-  gpio.setPWMOutput(PWM_OUT, speed);
+  setBackward(speed);
 }
 
 void MotorController::brake() const {
@@ -140,5 +147,5 @@ MotorController::~MotorController() {
   if (encoderThread.joinable()) {
     encoderThread.join();
   }
-  brake(true);
+  brake();
 }
