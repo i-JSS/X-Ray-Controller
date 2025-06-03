@@ -40,6 +40,28 @@ void calibrate() {
   modbus.write(ModbusController::SubCode::REG_MACHINE_STATE, 0x00);
 }
 
+float ultimaPosicaoX = 0.0f, ultimaPosicaoY = 0.0f;
+
+void move(MotorController &motor, bool forward, bool isXMotor) {
+  const bool limitReached = forward ? motor.onForwardLimit() : motor.onBackwardLimit();
+  const ModbusController::SubCode speedRegister = isXMotor ? ModbusController::SubCode::REG_SPEED_X : ModbusController::SubCode::REG_SPEED_Y;
+  const ModbusController::SubCode distanceRegister = isXMotor ? ModbusController::SubCode::REG_POSITION_X : ModbusController::SubCode::REG_POSITION_Y;
+  if (limitReached) return;
+
+  if (forward) motor.setForward();
+  else motor.setBackward();
+
+  usleep(50000);
+  motorData data = motor.getMotorData();
+  motor.brake();
+  std::cout << "Distância: " << data.distance << " m | Velocidade: " << data.speed << " m/s" << std::endl;
+  modbus.write(speedRegister, data.speed);
+  modbus.write(distanceRegister, data.distance);
+
+  if (isXMotor) ultimaPosicaoX = data.distance;
+  else ultimaPosicaoY = data.distance;
+}
+
 void moveToPosition(MotorController& motor, float targetPosition, bool isXMotor) {
   PIDController pid;
   pid.setReference(targetPosition);
@@ -67,7 +89,7 @@ void moveToPosition(MotorController& motor, float targetPosition, bool isXMotor)
 
     usleep(50000);
   }
-
+  motor.brake();
   motorData data = motor.getMotorData();
 
 #ifdef DEBUG
@@ -108,7 +130,6 @@ void configurePins() {
   gpio.configureInputPin(BOTAO_ESQ);
   gpio.configureInputPin(BOTAO_DIR);
 
-  // gpio.configureInterrupt(BOTAO_EMERGENCIA, handler);
 }
 
 struct botao {
@@ -119,19 +140,23 @@ struct botao {
 
 // ------------ MAIN ------------
 
-void handler(int) {
+void emergencyHandler() {
   modbus.ensureClosed();
   bmp280.close();
-  motorX.brake();
-  motorY.brake();
-  std::cout << "Closing UART, I2C, STOP MOTORS" << std::endl;
+  moveToPosition(motorX, ultimaPosicaoX, true);
+  moveToPosition(motorY, ultimaPosicaoY, false);
+  std::cout << "Botão de emergência acionado! Fechando tudo..." << std::endl;
   exit(0);
 }
 
+void signalHandler(int) {
+  emergencyHandler();
+}
+
 int main() {
-  signal(SIGINT, handler);
-  configurePins();
-  //calibrate();
+  signal(SIGINT, signalHandler);
+  gpio.configureInterrupt(BOTAO_EMERGENCIA, emergencyHandler);
+  calibrate();
 
   std::array<botao, 4> botoes = {
     botao{BOTAO_CIMA, "Cima", false},
@@ -139,27 +164,44 @@ int main() {
     botao{BOTAO_ESQ, "Esquerda", false},
     botao{BOTAO_DIR, "Direita", false}};
 
-  for (const auto &botao : botoes) {
-    gpio.configureInputPin(botao.pino, [botao]() {
-      std::cout << "Botão " << botao.nome << " pressionado!" << std::endl;
-    });
-  }
-
-  // gpio.configureInterrupt(BOTAO_EMERGENCIA, handler);
-
   while (true) {
     for (auto &botao : botoes) {
       bool estadoAtual = digitalRead(botao.pino);
       if (estadoAtual != botao.estado) {
         botao.estado = estadoAtual;
+
         if (estadoAtual) {
           std::cout << "Botão " << botao.nome << " pressionado!" << std::endl;
+
+          if (botao.pino == BOTAO_CIMA) {
+            move(motorY, true, false);
+            ultimaPosicaoY = motorY.getMotorData().distance;
+          } else if (botao.pino == BOTAO_BAIXO) {
+            move(motorY, false, false);
+            ultimaPosicaoY = motorY.getMotorData().distance;
+          } else if (botao.pino == BOTAO_DIR) {
+            move(motorX, true, true);
+            ultimaPosicaoX = motorX.getMotorData().distance;
+          } else if (botao.pino == BOTAO_ESQ) {
+            move(motorX, false, true);
+            ultimaPosicaoX = motorX.getMotorData().distance;
+          }
+
         } else {
           std::cout << "Botão " << botao.nome << " liberado!" << std::endl;
+          std::cout << "movendo para" << ultimaPosicaoX << ", " << ultimaPosicaoY << std::endl;
+          if (botao.pino == BOTAO_CIMA || botao.pino == BOTAO_BAIXO) {
+            moveToPosition(motorY, ultimaPosicaoY, false);
+          } else if (botao.pino == BOTAO_DIR || botao.pino == BOTAO_ESQ) {
+            moveToPosition(motorX, ultimaPosicaoX, true);
+          }
         }
       }
     }
+
     usleep(50000);
   }
+
   return 0;
 }
+
