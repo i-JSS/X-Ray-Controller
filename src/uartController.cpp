@@ -24,7 +24,7 @@ void UARTController::sync() {
   usleep(UART_POLLING_INTERVAL);
 }
 
-void UARTController::send(const span<uint8_t> data) {
+void UARTController::send(span<const uint8_t> data) {
   int count = write(fd, data.data(), data.size());
   if (count < 0 || count != static_cast<int>(data.size()))
     throw std::system_error(errno, std::generic_category(),
@@ -32,27 +32,21 @@ void UARTController::send(const span<uint8_t> data) {
 }
 
 void UARTController::send(const vector<uint8_t> &data) {
-  int count = write(fd, data.data(), data.size());
-  if (count < 0 || count != static_cast<int>(data.size()))
-    throw std::system_error(errno, std::generic_category(),
-                            "Erro ao escrever na porta serial");
+  send(span(data));
 }
 
-void UARTController::read_into(span<uint8_t> buffer) {
+size_t UARTController::read_into(span<uint8_t> buffer) {
   ssize_t len = ::read(fd, buffer.data(), buffer.size());
   if (len < 0)
     throw std::system_error(errno, std::generic_category(),
                             "Erro ao ler da porta serial");
+  return len;
 }
 
 vector<uint8_t> UARTController::read(ssize_t max) {
   vector<uint8_t> buffer(max);
-  ssize_t bytesRead = ::read(fd, buffer.data(), max);
-  if (bytesRead < 0)
-    throw std::system_error(errno, std::generic_category(),
-                            "Erro ao ler da porta serial");
-
-  buffer.resize(bytesRead);
+  size_t len = read_into(span(buffer));
+  buffer.resize(len);
   return buffer;
 }
 

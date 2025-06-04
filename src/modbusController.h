@@ -2,9 +2,12 @@
 #include "modbusController.h"
 #include "uartController.h"
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <fcntl.h>
 #include <iostream>
+#include <optional>
+#include <span>
 #include <string>
 #include <sys/types.h>
 #include <termios.h>
@@ -18,86 +21,38 @@ public:
     WRITE = 0x06,
   };
   enum class SubCode : uint8_t {
-    MOVE_X_LEFT_RIGHT = 0x00,
-    MOVE_Y_UP_DOWN = 0x01,
-    PRESET_POSITIONS = 0x02,
-    SET_PRESET_POSITION = 0x03,
+    MOVE_X = 0x00,
+    MOVE_Y = 0x01,
+    PRESETS = 0x02,
+    CONFIG_PRESET = 0x03,
     CALIBRATE = 0x04,
-    REG_SPEED_X = 0x05,
-    REG_SPEED_Y = 0x09,
-    REG_POSITION_X = 0x0D,
-    REG_POSITION_Y = 0x11,
-    REG_TEMPERATURE = 0x15,
-    REG_PRESSURE = 0x19,
-    REG_MACHINE_STATE = 0x1D
+    X_SPEED = 0x05,
+    Y_SPEED = 0x09,
+    X_POS = 0x0D,
+    Y_POS = 0x11,
+    TEMP = 0x15,
+    PRESSURE = 0x19,
+    OP_STATE = 0x1D
   };
   struct RegisterState {
-    array<bool, 4> isMoving = {0, 0, 0, 0};
-    array<bool, 4> readingPreset = {0, 0, 0, 0};
+    std::array<bool, 4> isMoving = {0, 0, 0, 0};
+    std::optional<int> selectedPreset = std::nullopt;
     bool isCalibrating = false;
     bool isSettingPreset = false;
   };
 
-  explicit ModbusController(const string &portName, const speed_t baudRate)
+  explicit ModbusController(const std::string &portName, const speed_t baudRate)
       : uart_(portName, baudRate) {}
 
+  void init();
   [[nodiscard]] RegisterState readRegisters();
   void write(SubCode espRegister, float value);
   void write(SubCode espRegister, byte value);
   void ensureClosed() { uart_.ensureClosed(); }
 
 private:
-  struct Message {
-    virtual vector<uint8_t> build() const = 0;
-    virtual uint8_t getQtd() const = 0;
-  };
-  struct ReadMessage : Message {
-    SubCode readRegister;
-    uint8_t registerCount;
-
-    vector<uint8_t> build() const override {
-      vector<uint8_t> msg = {ESP_ADDRESS,
-                             static_cast<uint8_t>(Code::READ),
-                             static_cast<uint8_t>(readRegister),
-                             registerCount};
-      addPostfix(msg);
-      return msg;
-    };
-
-    uint8_t getQtd() const override { return registerCount; }
-  };
-  struct WriteMessage : Message {
-    SubCode writeRegister;
-    vector<uint8_t> data;
-
-    vector<uint8_t> build() const override {
-      vector<uint8_t> msg = {ESP_ADDRESS,
-                             static_cast<uint8_t>(Code::WRITE),
-                             static_cast<uint8_t>(writeRegister),
-                             static_cast<uint8_t>(data.size())};
-      msg.insert(msg.end(), data.begin(), data.end());
-      addPostfix(msg);
-      return msg;
-    }
-
-    uint8_t getQtd() const override { return static_cast<uint8_t>(data.size()); }
-  };
-
   static constexpr uint8_t ESP_ADDRESS = 0x01;
-  static constexpr array<uint8_t, 4> MATRICULA = {8, 1, 5, 0};
-
-  UARTController uart_;
-
-  vector<uint8_t> makeRequest(Message &message);
-
-  static void addPostfix(vector<uint8_t> &buffer) {
-    buffer.insert(buffer.end(), MATRICULA.begin(), MATRICULA.end());
-
-    uint16_t crc = calculateCRC(buffer.data(), buffer.size());
-    buffer.push_back(static_cast<uint8_t>(crc & 0xFF));
-    buffer.push_back(static_cast<uint8_t>(crc >> 8));
-  }
-
+  static constexpr std::array<uint8_t, 4> MATRICULA = {8, 1, 5, 0};
   static constexpr unsigned short tbl[256] = {
       0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241, 0xC601,
       0x06C0, 0x0780, 0xC741, 0x0500, 0xC5C1, 0xC481, 0x0440, 0xCC01, 0x0CC0,
@@ -128,25 +83,40 @@ private:
       0x8F81, 0x4F40, 0x8D01, 0x4DC0, 0x4C80, 0x8C41, 0x4400, 0x84C1, 0x8581,
       0x4540, 0x8701, 0x47C0, 0x4680, 0x8641, 0x8201, 0x42C0, 0x4380, 0x8341,
       0x4100, 0x81C1, 0x8081, 0x4040};
-  static short CRC16(short crc, char data) {
-    return ((crc & 0xFF00) >> 8) ^ tbl[(crc & 0x00FF) ^ (data & 0x00FF)];
-  }
 
-  static short calculateCRC(const unsigned char *commands,
-                            const int size) {
-    short crc = 0;
-    for (int i = 0; i < size; i++)
-      crc = CRC16(crc, commands[i]);
-    return crc;
-  }
+  UARTController uart_;
 
-  static bool isValidCRC(const unsigned char *buffer, int length) {
-    if (length < 3)
-      return false;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wparentheses"
-    return calculateCRC(buffer, length - 2) == buffer[length - 2] |
-           (buffer[length - 1] << 8);
-#pragma GCC diagnostic pop
-  }
+  struct Message {
+    virtual ~Message() = default;
+    virtual std::vector<uint8_t> build() const = 0;
+    virtual uint8_t getDataSize() const = 0;
+  };
+  struct ReadMessage : Message {
+    SubCode readRegister;
+    uint8_t registerCount;
+
+    ReadMessage(SubCode reg, uint8_t count) : readRegister(reg), registerCount(count) {}
+
+    std::vector<uint8_t> build() const override;
+    uint8_t getDataSize() const override { return registerCount; }
+  };
+  struct WriteMessage : Message {
+    SubCode writeRegister;
+    std::span<const uint8_t> data;
+
+    WriteMessage(SubCode reg, std::span<const uint8_t> dataSpan)
+        : writeRegister(reg), data(dataSpan) {}
+
+    std::vector<uint8_t> build() const override;
+    uint8_t getDataSize() const override { return static_cast<uint8_t>(data.size()); }
+  };
+
+  std::vector<uint8_t> makeRequest(Message &message);
+  void clearRegisters(SubCode espRegister, int bytesToClear);
+  void write(SubCode espRegister, std::span<const uint8_t> data);
+
+  static void addPostfix(std::vector<uint8_t> &buffer);
+  static short CRC16(short crc, char data);
+  static short calculateCRC(const unsigned char *commands, int size);
+  static bool isValidCRC(const unsigned char *buffer, int length);
 };
