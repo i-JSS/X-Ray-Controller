@@ -23,8 +23,8 @@ bmp280Controller bmp280;
 
 void updateBMP280(){
   bmp280Data bmpData = bmp280.readData();
-  modbus.write(ModbusController::SubCode::REG_TEMPERATURE, bmpData.temperature);
-  modbus.write(ModbusController::SubCode::REG_PRESSURE, bmpData.pressure);
+  modbus.write(ModbusController::SubCode::TEMP, bmpData.temperature);
+  modbus.write(ModbusController::SubCode::PRESSURE, bmpData.pressure);
 }
 
 // ------------ MOTORS ------------
@@ -33,7 +33,7 @@ MotorController motorX(MOTOR_X_PWM,MOTOR_X_DIR1,MOTOR_X_DIR2,ENCODER_X_A,ENCODER
 MotorController motorY(MOTOR_Y_PWM,MOTOR_Y_DIR1,MOTOR_Y_DIR2,ENCODER_Y_A,ENCODER_Y_B,SENSOR_Y_MIN,SENSOR_Y_MAX,180,70);
 
 void calibrate() {
-  modbus.write(ModbusController::SubCode::REG_MACHINE_STATE, 0x01);
+  modbus.write(ModbusController::SubCode::OP_STATE, 0x01);
 
   std::thread t1([] { motorX.calibrate(); });
   std::thread t2([] { motorY.calibrate(); });
@@ -41,15 +41,15 @@ void calibrate() {
   t1.join();
   t2.join();
 
-  modbus.write(ModbusController::SubCode::REG_MACHINE_STATE, 0x00);
+  modbus.write(ModbusController::SubCode::OP_STATE, 0x00);
 }
 
 float lastPositionX = 0.0f, lastPositionY = 0.0f;
 
 void move(MotorController &motor, bool forward, bool isXMotor) {
   const bool limitReached = forward ? motor.onForwardLimit() : motor.onBackwardLimit();
-  const ModbusController::SubCode speedRegister = isXMotor ? ModbusController::SubCode::REG_SPEED_X : ModbusController::SubCode::REG_SPEED_Y;
-  const ModbusController::SubCode distanceRegister = isXMotor ? ModbusController::SubCode::REG_POSITION_X : ModbusController::SubCode::REG_POSITION_Y;
+  const ModbusController::SubCode speedRegister = isXMotor ? ModbusController::SubCode::X_SPEED : ModbusController::SubCode::Y_SPEED;
+  const ModbusController::SubCode distanceRegister = isXMotor ? ModbusController::SubCode::X_POS : ModbusController::SubCode::Y_POS;
   // ADICIONAR A REDUÇÃO DE VELOCIDADE AQUI (ESPERAR O FREIO FUNCIONAR)
   if (limitReached) return;
 
@@ -74,8 +74,8 @@ void moveToPosition(MotorController& motor, float targetPosition, bool isXMotor)
 
   const float tolerance = 0.01f * fabs(targetPosition);
 
-  const ModbusController::SubCode speedRegister = isXMotor ? ModbusController::SubCode::REG_SPEED_X : ModbusController::SubCode::REG_SPEED_Y;
-  const ModbusController::SubCode distanceRegister = isXMotor ? ModbusController::SubCode::REG_POSITION_X : ModbusController::SubCode::REG_POSITION_Y;
+  const ModbusController::SubCode speedRegister = isXMotor ? ModbusController::SubCode::X_SPEED : ModbusController::SubCode::Y_SPEED;
+  const ModbusController::SubCode distanceRegister = isXMotor ? ModbusController::SubCode::X_POS : ModbusController::SubCode::Y_POS;
 
   while (true) {
     motorData data = motor.getMotorData();
@@ -165,22 +165,17 @@ void preset(const ModbusController::RegisterState registers) {
     return;
   }
   if (usingPreset) {
-    for (int i = 0; i < 4; ++i)
-      if (registers.readingPreset[i])
-        savePredefinedPosition(i);
-        usingPreset = false;
-        return;
+    savePredefinedPosition(registers.selectedPreset.value());
+    usingPreset = false;
+    return;
   }
-  for (int i = 0; i < 4; ++i)
-    if (registers.readingPreset[i])
-      goToPredefinedPosition(i);
+  goToPredefinedPosition(registers.selectedPreset.value());
 }
 
 // ------------ MAIN ------------
 
 void emergencyHandler() {
-  // LIMPART UART
-  // modbus.init();
+  modbus.init();
   modbus.ensureClosed();
   bmp280.close();
   // moveToPosition(motorX, ultimaPosicaoX, true);
@@ -197,7 +192,7 @@ int main() {
   signal(SIGINT, signalHandler);
   gpio.configureInterrupt(BOTAO_EMERGENCIA, emergencyHandler);
   configurePins();
-  // modbus.init();
+  modbus.init();
   updateBMP280();
   calibrate();
   while (true) {
