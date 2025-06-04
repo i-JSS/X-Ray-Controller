@@ -96,23 +96,26 @@ array<position, 4> predefinedPositions = {};
 float lastPositionX = 0.0f, lastPositionY = 0.0f;
 
 void updatePosition() {
-  motorData motorDataX = motorX.getMotorData();
-  motorData motorDataY = motorX.getMotorData();
+  while (true) {
+    motorData motorDataX = motorX.getMotorData();
+    motorData motorDataY = motorX.getMotorData();
 
-  // arredonda pois 40% do tempo a velocidade fica 0.078 e mostra zero no dashboard
-  modbus.write(ModbusController::SubCode::X_SPEED, (motorDataX.speed + 0.03f));
-  modbus.write(ModbusController::SubCode::X_POS, motorDataX.distance);
+    // arredonda pois 40% do tempo a velocidade fica 0.078 e mostra zero no dashboard
+    modbus.write(ModbusController::SubCode::X_SPEED, (motorDataX.speed + 0.03f));
+    modbus.write(ModbusController::SubCode::X_POS, motorDataX.distance);
 
-  modbus.write(ModbusController::SubCode::Y_SPEED, (motorDataY.speed + 0.03f));
-  modbus.write(ModbusController::SubCode::Y_POS, motorDataY.distance);
+    modbus.write(ModbusController::SubCode::Y_SPEED, (motorDataY.speed + 0.03f));
+    modbus.write(ModbusController::SubCode::Y_POS, motorDataY.distance);
 
-  lastPositionX = motorDataX.distance;
-  lastPositionY = motorDataY.distance;
+    lastPositionX = motorDataX.distance;
+    lastPositionY = motorDataY.distance;
 
 #ifdef DEBUG
   std::cout << "Motor X: distance: " << motorDataX.distance << " m | speed: " << motorDataX.speed << " m/s" << std::endl;
   std::cout << "Motor Y: distance: " << motorDataY.distance << " m | speed: " << motorDataY.speed << " m/s" << std::endl;
 #endif
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  }
 }
 
 void savePredefinedPosition(int position) {
@@ -197,11 +200,13 @@ int main() {
   gpio.configureInterrupt(BOTAO_EMERGENCIA, emergencyHandler);
   configurePins();
   calibrate();
+
+  std::thread positionThread(updatePosition);
+
   while (true) {
     try {
       auto registers = modbus.readRegisters();
       updateBMP280();
-      updatePosition();
 
       if (registers.isCalibrating) calibrate();
       preset(registers);
