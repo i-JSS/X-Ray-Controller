@@ -33,7 +33,7 @@ MotorController motorX(MOTOR_X_PWM,MOTOR_X_DIR1,MOTOR_X_DIR2,ENCODER_X_A,ENCODER
 MotorController motorY(MOTOR_Y_PWM,MOTOR_Y_DIR1,MOTOR_Y_DIR2,ENCODER_Y_A,ENCODER_Y_B,SENSOR_Y_MIN,SENSOR_Y_MAX,180,70);
 
 void calibrate() {
-  modbus.write(ModbusController::SubCode::OP_STATE, 0x01);
+  modbus.write(ModbusController::SubCode::OP_STATE, static_cast<uint8_t>(1));
 
   std::thread t1([] { motorX.calibrate(); });
   std::thread t2([] { motorY.calibrate(); });
@@ -41,7 +41,7 @@ void calibrate() {
   t1.join();
   t2.join();
 
-  modbus.write(ModbusController::SubCode::OP_STATE, 0x00);
+  modbus.write(ModbusController::SubCode::OP_STATE, static_cast<uint8_t>(0));
 }
 
 float lastPositionX = 0.0f, lastPositionY = 0.0f;
@@ -164,12 +164,14 @@ void preset(const ModbusController::RegisterState registers) {
     usingPreset = true;
     return;
   }
-  if (usingPreset) {
-    savePredefinedPosition(registers.selectedPreset.value());
-    usingPreset = false;
-    return;
+  if (registers.selectedPreset.has_value()) {
+    if (usingPreset) {
+      savePredefinedPosition(registers.selectedPreset.value());
+      usingPreset = false;
+      return;
+    }
+    goToPredefinedPosition(registers.selectedPreset.value());
   }
-  goToPredefinedPosition(registers.selectedPreset.value());
 }
 
 // ------------ MAIN ------------
