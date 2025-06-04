@@ -1,7 +1,6 @@
 #include "motorController.h"
 #include "easylogging++.h"
 #include "gpioController.h"
-#include <iostream>
 #include <thread>
 #include <unistd.h>
 
@@ -19,6 +18,11 @@ MotorController::MotorController(int PWM, int DIR1, int DIR2, int ENCODER_A, int
 }
 
 void MotorController::init() {
+  LOG(INFO) << "Initializing motor controller.";
+  LOG(DEBUG) << "Motor pins: PWM: " << PWM_OUT
+             << ", DIR1: " << DIR1 << ", DIR2: " << DIR2
+             << ", ENCODER_A: " << ENCODER_A << ", ENCODER_B: " << ENCODER_B
+             << ", MIN_SENSOR: " << MIN_SENSOR << ", MAX_SENSOR: " << MAX_SENSOR;
   bool prevA = gpio.getDigitalInput(ENCODER_A);
   bool prevB = gpio.getDigitalInput(ENCODER_B);
 

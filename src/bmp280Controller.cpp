@@ -13,6 +13,7 @@ bmp280Controller::bmp280Controller() : i2c("/dev/i2c-1", 0x76) {
 }
 
 void bmp280Controller::initialize() {
+  LOG(INFO) << "Initializing BMP280 I2C device";
   i2c.ensureOpen();
 }
 

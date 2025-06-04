@@ -87,6 +87,7 @@ void move(MotorController &motor, bool forward, bool isXMotor) {
 }
 
 void moveToPosition(MotorController &motor, float targetPosition, bool isXMotor) {
+  LOG(INFO) << "Moving " << (isXMotor ? "X" : "Y") << " motor to position: " << targetPosition << " cm";
   PIDController pid;
   pid.setReference(targetPosition);
 
