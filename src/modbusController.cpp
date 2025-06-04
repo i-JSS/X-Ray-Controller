@@ -105,8 +105,8 @@ ModbusController::RegisterState ModbusController::readRegisters() {
       state.selectedPreset = i + 1;
   }
 
-  state.isCalibrating = response[offset++];
   state.isSettingPreset = response[offset++];
+  state.isCalibrating = response[offset++];
   clearRegisters(SubCode::MOVE_X, 5);
   return state;
 }

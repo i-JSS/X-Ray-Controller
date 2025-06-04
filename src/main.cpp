@@ -33,6 +33,7 @@ MotorController motorX(MOTOR_X_PWM,MOTOR_X_DIR1,MOTOR_X_DIR2,ENCODER_X_A,ENCODER
 MotorController motorY(MOTOR_Y_PWM,MOTOR_Y_DIR1,MOTOR_Y_DIR2,ENCODER_Y_A,ENCODER_Y_B,SENSOR_Y_MIN,SENSOR_Y_MAX,180,70);
 
 void calibrate() {
+  std::cout << "Calibrating..." << std::endl;
   modbus.write(ModbusController::SubCode::OP_STATE, static_cast<uint8_t>(1));
 
   std::thread t1([] { motorX.calibrate(); });
@@ -59,7 +60,6 @@ void move(MotorController &motor, bool forward, bool isXMotor) {
   usleep(50000);
   motorData data = motor.getMotorData();
   motor.brake();
-  std::cout << "Distância: " << data.distance << " m | Velocidade: " << data.speed << " m/s" << std::endl;
   // arredonda pois 40% do tempo a velocidade fica 0.078 e mostra zero no dashboard
   modbus.write(speedRegister, (data.speed + 0.03f));
   modbus.write(distanceRegister, data.distance);
@@ -143,10 +143,10 @@ void configurePins() {
 // ------------ MOVIMENTAÇÃO ------------
 
 void behavior(const ModbusController::RegisterState registers) {
-  bool up  = gpio.getDigitalInput(BOTAO_CIMA) || registers.isMoving[0];
-  bool down = gpio.getDigitalInput(BOTAO_BAIXO) || registers.isMoving[1];
-  bool left   = gpio.getDigitalInput(BOTAO_ESQ) || registers.isMoving[2];
-  bool right   = gpio.getDigitalInput(BOTAO_DIR) || registers.isMoving[3];
+  bool up  = gpio.getDigitalInput(BOTAO_CIMA) || registers.isMoving[2];
+  bool down = gpio.getDigitalInput(BOTAO_BAIXO) || registers.isMoving[3];
+  bool left   = gpio.getDigitalInput(BOTAO_ESQ) || registers.isMoving[0];
+  bool right   = gpio.getDigitalInput(BOTAO_DIR) || registers.isMoving[1];
 
   int activeCount = up + down + left + right;
   if (activeCount > 1) return;
@@ -161,6 +161,7 @@ bool usingPreset = false;
 
 void preset(const ModbusController::RegisterState registers) {
   if (registers.isSettingPreset) {
+    std::cout << "Making Preset..." << std::endl;
     usingPreset = true;
     return;
   }
@@ -198,11 +199,18 @@ int main() {
   updateBMP280();
   calibrate();
   while (true) {
-    updateBMP280();
-    auto registers = modbus.readRegisters();
-    if (registers.isCalibrating) calibrate();
-    preset(registers);
-    behavior(registers);
+    try {
+      updateBMP280();
+      auto registers = modbus.readRegisters();
+      if (registers.isCalibrating) calibrate();
+      preset(registers);
+      behavior(registers);
+    } catch (const std::exception &e) {
+#ifdef DEBUG
+      std::cerr << "Error: " << e.what() << "\n";
+#endif
+      continue;
+    }
   }
   return 0;
 }
