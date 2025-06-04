@@ -47,17 +47,42 @@ void calibrate() {
   std::cout << "Calibration done" << std::endl;
 }
 
-void move(MotorController &motor, bool forward) {
-  if (forward ? motor.onForwardLimit() : motor.onBackwardLimit()) return;
+float lastPositionX = 0.0f, lastPositionY = 0.0f;
+
+void updatePosition(MotorController &motor, bool isXMotor){
+  const ModbusController::SubCode speedRegister = isXMotor ? ModbusController::SubCode::X_SPEED : ModbusController::SubCode::Y_SPEED;
+  const ModbusController::SubCode distanceRegister = isXMotor ? ModbusController::SubCode::X_POS : ModbusController::SubCode::Y_POS;
+
+  motorData data = motor.getMotorData();
+  // arredonda pois 40% do tempo a velocidade fica 0.078 e mostra zero no dashboard
+  modbus.write(speedRegister, (data.speed + 0.03f));
+  modbus.write(distanceRegister, data.distance);
+
+  if (isXMotor) lastPositionX = data.distance;
+  else lastPositionY = data.distance;
+
+#ifdef DEBUG
+  std::cout << "Distance: " << data.distance << " m | speed: " << data.speed << " m/s" << std::endl;
+#endif
+}
+
+void move(MotorController &motor, bool forward, bool isXMotor) {
+  const bool limitReached = forward ? motor.onForwardLimit() : motor.onBackwardLimit();
+
+  if (limitReached) {
+    updatePosition(motor, isXMotor);
+    return;
+  }
 
   if (forward) motor.setForward();
   else motor.setBackward();
 
   usleep(50000);
+  updatePosition(motor, isXMotor);
   motor.brake();
 }
 
-void moveToPosition(MotorController& motor, float targetPosition) {
+void moveToPosition(MotorController& motor, float targetPosition, bool isXMotor) {
   PIDController pid;
   pid.setReference(targetPosition);
 
@@ -80,8 +105,11 @@ void moveToPosition(MotorController& motor, float targetPosition) {
     else motor.setBackward(pwm);
 
     usleep(50000);
+    updatePosition(motor, isXMotor);
   }
   motor.brake();
+  usleep(50000);
+  updatePosition(motor, isXMotor);
 }
 
 // ------------ PID ------------
@@ -93,38 +121,6 @@ struct position {
 
 array<position, 4> predefinedPositions = {};
 
-float lastPositionX = 0.0f, lastPositionY = 0.0f;
-
-void updatePosition() {
-  while (true) {
-    try {
-      motorData motorDataX = motorX.getMotorData();
-      motorData motorDataY = motorX.getMotorData();
-
-      // arredonda pois 40% do tempo a velocidade fica 0.078 e mostra zero no dashboard
-      modbus.write(ModbusController::SubCode::X_SPEED, (motorDataX.speed + 0.03f));
-      modbus.write(ModbusController::SubCode::X_POS, motorDataX.distance);
-
-      modbus.write(ModbusController::SubCode::Y_SPEED, (motorDataY.speed + 0.03f));
-      modbus.write(ModbusController::SubCode::Y_POS, motorDataY.distance);
-
-      lastPositionX = motorDataX.distance;
-      lastPositionY = motorDataY.distance;
-
-#ifdef DEBUG
-  std::cout << "Motor X: distance: " << motorDataX.distance << " m | speed: " << motorDataX.speed << " m/s" << std::endl;
-  std::cout << "Motor Y: distance: " << motorDataY.distance << " m | speed: " << motorDataY.speed << " m/s" << std::endl;
-#endif
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    } catch (const std::exception &e) {
-#ifdef DEBUG
-      std::cerr << "Error: " << e.what() << "\n";
-#endif
-      continue;
-    }
-  }
-}
-
 void savePredefinedPosition(int position) {
   std::cout << "Preset: " << position << " done, Position: " << lastPositionX << ", " << lastPositionY << std::endl;
   predefinedPositions[position] = {lastPositionX, lastPositionY};
@@ -134,8 +130,8 @@ void goToPredefinedPosition(int position) {
   const auto&[x, y] = predefinedPositions[position];
   std::cout << "Preset: " << position << " moving to " << x << ", " << y << std::endl;
   if (x != 0 && y != 0) {
-    std::thread t1([&] { moveToPosition(motorX, x); });
-    std::thread t2([&] { moveToPosition(motorY, y); });
+    std::thread t1([&] { moveToPosition(motorX, x, true); });
+    std::thread t2([&] { moveToPosition(motorY, y, false); });
     t1.join();
     t2.join();
   }
@@ -164,10 +160,10 @@ void behavior(const ModbusController::RegisterState registers) {
   int activeCount = up + down + left + right;
   if (activeCount > 1) return;
 
-  if (up) move(motorY, true);
-  if (down) move(motorY, false);
-  if (left) move(motorX, false);
-  if (right) move(motorX, true);
+  if (up) move(motorY, true, false);
+  if (down) move(motorY, false, false);
+  if (left) move(motorX, false, true);
+  if (right) move(motorX, true, true);
 }
 
 bool usingPreset = false;
@@ -208,13 +204,10 @@ int main() {
   configurePins();
   calibrate();
 
-  std::thread positionThread(updatePosition);
-
   while (true) {
     try {
       auto registers = modbus.readRegisters();
       updateBMP280();
-
       if (registers.isCalibrating) calibrate();
       preset(registers);
       behavior(registers);
