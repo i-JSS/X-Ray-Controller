@@ -116,11 +116,13 @@ struct position {
 array<position, 4> predefinedPositions = {};
 
 void savePredefinedPosition(int position) {
+  std::cout << "Preset " << position << " done, Position: " << lastPositionX << ", " << lastPositionY << std::endl;
   predefinedPositions[position] = {lastPositionX, lastPositionY};
 }
 
 void goToPredefinedPosition(int position) {
   const auto&[x, y] = predefinedPositions[position];
+  std::cout << "Preset" << position << " moving to " << x << ", " << y << std::endl;
   if (x != 0 && y != 0) {
     std::thread t1([&] { moveToPosition(motorX, x, true); });
     std::thread t2([&] { moveToPosition(motorY, y, false); });
@@ -143,10 +145,10 @@ void configurePins() {
 // ------------ MOVIMENTAÇÃO ------------
 
 void behavior(const ModbusController::RegisterState registers) {
-  bool up  = gpio.getDigitalInput(BOTAO_CIMA) || registers.isMoving[2];
-  bool down = gpio.getDigitalInput(BOTAO_BAIXO) || registers.isMoving[3];
   bool left   = gpio.getDigitalInput(BOTAO_ESQ) || registers.isMoving[0];
   bool right   = gpio.getDigitalInput(BOTAO_DIR) || registers.isMoving[1];
+  bool up  = gpio.getDigitalInput(BOTAO_CIMA) || registers.isMoving[2];
+  bool down = gpio.getDigitalInput(BOTAO_BAIXO) || registers.isMoving[3];
 
   int activeCount = up + down + left + right;
   if (activeCount > 1) return;
