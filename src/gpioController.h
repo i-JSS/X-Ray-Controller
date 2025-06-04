@@ -32,6 +32,7 @@ constexpr int BOTAO_DIR = 8;
 constexpr int BOTAO_EMERGENCIA = 11;
 
 typedef std::function<void(void)> callback_t;
+
 class GPIOController {
 private:
   // NOTE: criei meu própio enum pois
@@ -48,7 +49,7 @@ private:
 
   struct InputPin : Pin {
     std::optional<bool> lastState;
-    callback_t handle;
+    std::optional<callback_t> handle;
   };
 
   std::vector<Pin> configuredPins;
@@ -65,9 +66,6 @@ public:
     return instance;
   }
 
-  /* PERF: Espero encarecidamente que essas funções sejam inlined
-   * pelo compilador
-   */
   const Pin *getExistingPin(int pin);
   void configureInputPin(int pin, callback_t handle = nullptr);
   void configureOutputPin(int pin);
