@@ -95,7 +95,7 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   auto response = makeRequest(readMessage);
   int offset = 2;
 
-  int moveByte = (response[offset + 1] << 4) | response[offset];
+  int moveByte = (response[offset + 1] << 2) | response[offset];
   offset += 2;
   uint8_t presetByte = response[offset++];
   for (int i = 0; i < 4; i++) {
