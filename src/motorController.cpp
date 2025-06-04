@@ -44,6 +44,7 @@ void MotorController::init() {
 }
 
 void MotorController::calibrate() {
+  LOG(INFO) << "Starting motor calibration. (PWM " << PWM_OUT << ")";
   constexpr int DIST_FROM_LIMIT_CM = 3;
 
   setBackward();
@@ -78,6 +79,8 @@ void MotorController::calibrate() {
     usleep(1000);
   }
   brake();
+
+  LOG(INFO) << "Calibration complete. Motor (PWM " << PWM_OUT << ") ready.";
 }
 
 void MotorController::setForward(float pwm) const {
