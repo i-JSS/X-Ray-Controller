@@ -143,15 +143,18 @@ void configurePins() {
 // ------------ MOVIMENTAÇÃO ------------
 
 void behavior(const ModbusController::RegisterState registers) {
-  if (gpio.getDigitalInput(BOTAO_CIMA) || registers.isMoving[0]) {
-    move(motorY, true, false);
-  } else if (gpio.getDigitalInput(BOTAO_BAIXO) || registers.isMoving[1]) {
-    move(motorY, false, false);
-  } else if (gpio.getDigitalInput(BOTAO_ESQ) || registers.isMoving[2]) {
-    move(motorX, false, true);
-  } else if (gpio.getDigitalInput(BOTAO_DIR) || registers.isMoving[3]) {
-    move(motorX, true, true);
-  }
+  bool up  = gpio.getDigitalInput(BOTAO_CIMA) || registers.isMoving[0];
+  bool down = gpio.getDigitalInput(BOTAO_BAIXO) || registers.isMoving[1];
+  bool left   = gpio.getDigitalInput(BOTAO_ESQ) || registers.isMoving[2];
+  bool right   = gpio.getDigitalInput(BOTAO_DIR) || registers.isMoving[3];
+
+  int activeCount = up + down + left + right;
+  if (activeCount > 1) return;
+
+  if (up) move(motorY, true, false);
+  if (down) move(motorY, false, false);
+  if (left) move(motorX, false, true);
+  if (right) move(motorX, true, true);
 }
 
 bool usingPreset = false;
@@ -177,6 +180,7 @@ void preset(const ModbusController::RegisterState registers) {
 
 void emergencyHandler() {
   // LIMPART UART
+  // modbus.init();
   modbus.ensureClosed();
   bmp280.close();
   // moveToPosition(motorX, ultimaPosicaoX, true);
@@ -193,9 +197,8 @@ int main() {
   signal(SIGINT, signalHandler);
   gpio.configureInterrupt(BOTAO_EMERGENCIA, emergencyHandler);
   configurePins();
-
+  // modbus.init();
   updateBMP280();
-  // LIMPART UART
   calibrate();
   while (true) {
     updateBMP280();
@@ -203,9 +206,6 @@ int main() {
     if (registers.isCalibrating) calibrate();
     preset(registers);
     behavior(registers);
-    // NAO TEM BOTAO DE CAPTURA SO UM LED INDICANDO
-    // if (gpio.setDigitalOutput(CAPTURA, true)) std::cout << "Capturado!" << std::endl;
-    // LIMPART UART
   }
   return 0;
 }
