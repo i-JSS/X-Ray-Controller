@@ -34,7 +34,7 @@ MotorController motorY(MOTOR_Y_PWM,MOTOR_Y_DIR1,MOTOR_Y_DIR2,ENCODER_Y_A,ENCODER
 
 void calibrate() {
   std::cout << "Calibrating..." << std::endl;
-  modbus.write(ModbusController::SubCode::OP_STATE, static_cast<uint8_t>(1));
+  modbus.write(ModbusController::SubCode::OP_STATE, std::byte{1});
 
   std::thread t1([] { motorX.calibrate(); });
   std::thread t2([] { motorY.calibrate(); });
@@ -42,7 +42,8 @@ void calibrate() {
   t1.join();
   t2.join();
 
-  modbus.write(ModbusController::SubCode::OP_STATE, static_cast<uint8_t>(0));
+  modbus.write(ModbusController::SubCode::OP_STATE, std::byte{0});
+  std::cout << "Calibration done" << std::endl;
 }
 
 float lastPositionX = 0.0f, lastPositionY = 0.0f;
