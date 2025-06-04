@@ -12,14 +12,21 @@ private:
   const double Ki;
   const double Kd;
 
-  double reference = 0.0;
-  int samplePeriod = 1.0;
-  double accumulatedError, prevError = 0.0;
+  double reference;
+  int samplePeriod;
+  double accumulatedError;
+  double prevError;
 
 public:
-  PIDController(double Kp, double Ki, double Kd) : accumulatedError(0.0), Kp(Kp), Ki(Ki), Kd(Kd) {}
+  PIDController(double Kp, double Ki, double Kd)
+      : Kp(Kp), Ki(Ki), Kd(Kd),
+        reference(0.0),
+        samplePeriod(1),
+        accumulatedError(0.0),
+        prevError(0.0) {}
 
-  PIDController() : PIDController(DEFAULT_KP, DEFAULT_KI, DEFAULT_KD) {}
+  PIDController()
+      : PIDController(DEFAULT_KP, DEFAULT_KI, DEFAULT_KD) {}
 
   double getControlSignal(double measuredOutput);
   void setReference(double newReference);
