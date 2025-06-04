@@ -1,4 +1,5 @@
 #include "bmp280Controller.h"
+#include "easylogging++.h"
 #include <array>
 #include <iostream>
 #include <unistd.h>
@@ -16,7 +17,7 @@ void bmp280Controller::initialize() {
 }
 
 void bmp280Controller::close() {
-  std::cout << "Closing I2C device" << std::endl;
+  LOG(INFO) << "Closing I2C device";
   i2c.ensureClose();
 }
 

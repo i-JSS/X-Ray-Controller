@@ -1,8 +1,9 @@
 #include "motorController.h"
+#include "easylogging++.h"
 #include "gpioController.h"
+#include <iostream>
 #include <thread>
 #include <unistd.h>
-#include <iostream>
 
 MotorController::MotorController(int PWM, int DIR1, int DIR2, int ENCODER_A, int ENCODER_B, int MIN_SENSOR, int MAX_SENSOR, int trackLengthInCM, int speed)
     : PWM_OUT(PWM), DIR1(DIR1), DIR2(DIR2), ENCODER_A(ENCODER_A), ENCODER_B(ENCODER_B),
@@ -26,8 +27,10 @@ void MotorController::init() {
       bool a = gpio.getDigitalInput(ENCODER_A);
       bool b = gpio.getDigitalInput(ENCODER_B);
       if (a && !prevA) {
-        if (b) pulseCount.fetch_sub(1);
-        else pulseCount.fetch_add(1);
+        if (b)
+          pulseCount.fetch_sub(1);
+        else
+          pulseCount.fetch_add(1);
       }
       prevA = a;
       prevB = b;
@@ -62,14 +65,10 @@ void MotorController::calibrate() {
   virtualMinLimit = marginPulses;
   virtualMaxLimit = trackLengthInPulses - marginPulses;
 
-#ifdef DEBUG
-  std::cout << "Total pulses counted: " << trackLengthInPulses << std::endl;
-  std::cout << "length (cm): " << trackLengthInCM << std::endl;
-  std::cout << "Minimum virtual limit set at: " << virtualMinLimit << " pulses" << std::endl;
-  std::cout << "Maximum virtual limit set at: " << virtualMaxLimit << " pulses" << std::endl;
-  std::cout << "CM per pulse: " << cmPerPulse << std::endl;
-#endif
-  // Movendo para a posição inicial respeitando o limite virtual
+  LOG(DEBUG) << "Track length in pulses: " << trackLengthInPulses
+             << ", CM per pulse: " << cmPerPulse
+             << ", Virtual min limit: " << virtualMinLimit
+             << ", Virtual max limit: " << virtualMaxLimit;
   setBackward();
   while (pulseCount.load() > virtualMinLimit) {
     usleep(1000);
@@ -129,9 +128,8 @@ motorData MotorController::getMotorData() const {
   const double totalDistanceMeters = (currentPulse * cmPerPulse) / 100.0;
 
   return motorData{
-    .speed = static_cast<float>(speed_mps),
-    .distance = static_cast<float>(totalDistanceMeters)
-  };
+      .speed = static_cast<float>(speed_mps),
+      .distance = static_cast<float>(totalDistanceMeters)};
 }
 
 bool MotorController::onForwardLimit() const {
