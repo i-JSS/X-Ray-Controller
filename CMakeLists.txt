@@ -4,7 +4,7 @@ project(x-ray-controller)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_compile_options(-Wall -Wextra)
+add_compile_options(-Wall -Wextra -DELPP_THREAD_SAFE)
 
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 

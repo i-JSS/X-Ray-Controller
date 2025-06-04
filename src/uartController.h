@@ -12,6 +12,9 @@
 #include <unistd.h>
 #include <vector>
 
+constexpr int UART_POLLING_INTERVAL = 50000; // 50 ms
+constexpr int DEBUG_N = 40;                  // Frequência de log
+//
 using namespace std;
 
 class UARTController {

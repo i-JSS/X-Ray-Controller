@@ -210,6 +210,7 @@ void signalHandler(int) {
 }
 
 int main() {
+  el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
   signal(SIGINT, signalHandler);
   gpio.configureInterrupt(BOTAO_EMERGENCIA, emergencyHandler);
   configurePins();

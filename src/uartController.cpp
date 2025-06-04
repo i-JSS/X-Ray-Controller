@@ -11,8 +11,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-constexpr int UART_POLLING_INTERVAL = 50000; // 50 ms
-
 using namespace std;
 
 std::string toHexString(span<const uint8_t> data) {
@@ -37,13 +35,13 @@ void UARTController::sync() {
 }
 
 void UARTController::send(span<const uint8_t> data) {
-  LOG(DEBUG) << "Sending uart message: "
-             << toHexString(data);
+  LOG_EVERY_N(40, DEBUG) << "Sending uart message: "
+                         << toHexString(data);
   int count = write(fd, data.data(), data.size());
   if (count < 0 || count != static_cast<int>(data.size()))
     throw std::system_error(errno, std::generic_category(),
                             "Erro ao escrever na porta serial");
-  LOG(DEBUG) << "Message sent succesfully, " << count << " bytes";
+  LOG_EVERY_N(40, DEBUG) << "Message sent succesfully, " << count << " bytes";
 }
 
 void UARTController::send(const vector<uint8_t> &data) {
@@ -55,8 +53,8 @@ size_t UARTController::read_into(span<uint8_t> buffer) {
   if (len < 0)
     throw std::system_error(errno, std::generic_category(),
                             "Erro ao ler da porta serial");
-  LOG(DEBUG) << "Read UART Message: "
-             << toHexString(span(buffer.data(), len));
+  LOG_EVERY_N(40, DEBUG) << "Read UART Message: "
+                         << toHexString(span(buffer.data(), len));
   return len;
 }
 
