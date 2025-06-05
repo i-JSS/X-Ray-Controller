@@ -51,6 +51,7 @@ void calibrate() {
 float lastPositionX = 0.0f, lastPositionY = 0.0f;
 
 void updatePosition(MotorController &motor, bool isXMotor) {
+  LOG(INFO) << "Moving " << (isXMotor ? "X" : "Y") << " position";
   const ModbusController::SubCode speedRegister = isXMotor ? ModbusController::SubCode::X_SPEED : ModbusController::SubCode::Y_SPEED;
   const ModbusController::SubCode distanceRegister = isXMotor ? ModbusController::SubCode::X_POS : ModbusController::SubCode::Y_POS;
 
@@ -69,6 +70,7 @@ void updatePosition(MotorController &motor, bool isXMotor) {
 }
 
 void move(MotorController &motor, bool forward, bool isXMotor) {
+  LOG(INFO) << "Moving " << (isXMotor ? "X" : "Y") << " motor " << (forward ? "forward" : "backward");
   const bool limitReached = forward ? motor.onForwardLimit() : motor.onBackwardLimit();
 
   if (limitReached) {
@@ -168,14 +170,22 @@ void behavior(const ModbusController::RegisterState registers) {
   if (activeCount > 1)
     return;
 
-  if (up)
+  if (up) {
+    LOG(DEBUG) << "Moving up.";
     move(motorY, true, false);
-  if (down)
+  }
+  if (down) {
+    LOG(DEBUG) << "Moving down.";
     move(motorY, false, false);
-  if (left)
+  }
+  if (left) {
+    LOG(DEBUG) << "Moving left.";
     move(motorX, false, true);
-  if (right)
+  }
+  if (right) {
+    LOG(DEBUG) << "Moving left.";
     move(motorX, true, true);
+  }
 }
 
 bool usingPreset = false;
@@ -212,16 +222,24 @@ void signalHandler(int) {
 int main() {
   el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
   signal(SIGINT, signalHandler);
+
+  LOG(INFO) << "Starting pin configuration...";
   gpio.configureInterrupt(BOTAO_EMERGENCIA, emergencyHandler);
   configurePins();
+  LOG(INFO) << "Pin configuration done...";
+
+  LOG(INFO) << "Starting initial calibration...";
   calibrate();
+  LOG(INFO) << "Initial calibration done...";
 
   while (true) {
     try {
       auto registers = modbus.readRegisters();
       updateBMP280();
-      if (registers.isCalibrating)
+      if (registers.isCalibrating) {
+        LOG(INFO) << "Calibration button pressed. Starting calibration...";
         calibrate();
+      }
       preset(registers);
       behavior(registers);
     } catch (const std::exception &e) {
