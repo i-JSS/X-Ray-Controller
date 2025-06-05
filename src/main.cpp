@@ -192,7 +192,11 @@ bool usingPreset = false;
 
 void preset(const ModbusController::RegisterState registers) {
   if (registers.isSettingPreset) {
-    LOG(INFO) << "Setting Preset: " << registers.selectedPreset.value_or(-1);
+    if (registers.selectedPreset) {
+      LOG(INFO) << "Setting Preset: " << registers.selectedPreset.value_or(-1);
+    } else {
+      LOG(WARNING) << "Setting preset but no preset selected...";
+    }
     usingPreset = true;
     return;
   }
