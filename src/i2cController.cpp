@@ -1,4 +1,5 @@
 #include "i2cController.h"
+#include "easylogging++.h"
 #include <fcntl.h>
 #include <linux/i2c-dev.h>
 #include <stdexcept>
