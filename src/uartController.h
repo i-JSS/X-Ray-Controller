@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <vector>
 
+std::string toHexString(std::span<const uint8_t> data);
+
 constexpr int UART_POLLING_INTERVAL = 50000; // 50 ms
 constexpr int DEBUG_N = 80;                  // Frequência de log
 //

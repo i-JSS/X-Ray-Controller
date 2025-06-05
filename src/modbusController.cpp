@@ -75,7 +75,8 @@ std::vector<uint8_t> ModbusController::makeRequest(Message &message) {
 
   if (!isValidCRC(response.data(), response.size())) {
     uart_.ensureClosed();
-    throw std::runtime_error("Invalid CRC checksum");
+    throw std::runtime_error("Invalid CRC checksum: " +
+                             toHexString(std::span(response)));
   }
 
   LOG_EVERY_N(DEBUG_N, DEBUG) << "CRC checksum is valid";
