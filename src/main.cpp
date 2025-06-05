@@ -243,7 +243,7 @@ int main() {
       preset(registers);
       behavior(registers);
     } catch (const std::exception &e) {
-      LOG(WARNING) << "Error caught: " << e.what();
+      LOG(ERROR) << "Error caught: " << e.what();
       continue;
     }
   }
