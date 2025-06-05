@@ -105,8 +105,6 @@ void MotorController::setBackward() const {
 void MotorController::brake() const {
   gpio.setDigitalOutput(DIR1, true);
   gpio.setDigitalOutput(DIR2, true);
-  gpio.setPWMOutput(PWM_OUT, 100);
-  usleep(50000);
   gpio.setPWMOutput(PWM_OUT, 0);
 }
 
