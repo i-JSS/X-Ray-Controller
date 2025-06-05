@@ -5,7 +5,7 @@ Integrantes:
 | Nome          | GitHub    | Matrícula |
 | ------------- | --------- | --------- |
 | André Silva   | Hunter104 | 221007813 |
-| João Carvalho | i-JSS     | MATRICULA |
+| João Carvalho | i-JSS     | 221008150 |
 
 ## Módulos
 

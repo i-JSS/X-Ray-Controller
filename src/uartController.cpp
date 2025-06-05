@@ -1,16 +1,26 @@
 #include "uartController.h"
+#include "easylogging++.h"
 #include <cstdint>
 #include <fcntl.h>
+#include <iomanip>
 #include <span>
+#include <sstream>
 #include <string>
 #include <sys/types.h>
 #include <system_error>
 #include <termios.h>
 #include <unistd.h>
 
-constexpr int UART_POLLING_INTERVAL = 50000; // 50 ms
-
 using namespace std;
+
+std::string toHexString(span<const uint8_t> data) {
+  std::ostringstream oss;
+  oss << std::hex << std::setfill('0');
+  for (const auto &byte : data) {
+    oss << std::setw(2) << static_cast<int>(byte) << " ";
+  }
+  return oss.str();
+}
 
 void UARTController::ensureClosed() {
   if (fd != -1) {
@@ -25,10 +35,13 @@ void UARTController::sync() {
 }
 
 void UARTController::send(span<const uint8_t> data) {
+  LOG_EVERY_N(40, DEBUG) << "Sending uart message: "
+                         << toHexString(data);
   int count = write(fd, data.data(), data.size());
   if (count < 0 || count != static_cast<int>(data.size()))
     throw std::system_error(errno, std::generic_category(),
                             "Erro ao escrever na porta serial");
+  LOG_EVERY_N(40, DEBUG) << "Message sent succesfully, " << count << " bytes";
 }
 
 void UARTController::send(const vector<uint8_t> &data) {
@@ -40,6 +53,8 @@ size_t UARTController::read_into(span<uint8_t> buffer) {
   if (len < 0)
     throw std::system_error(errno, std::generic_category(),
                             "Erro ao ler da porta serial");
+  LOG_EVERY_N(40, DEBUG) << "Read UART Message: "
+                         << toHexString(span(buffer.data(), len));
   return len;
 }
 

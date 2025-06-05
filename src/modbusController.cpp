@@ -1,28 +1,15 @@
 #include "modbusController.h"
+#include "easylogging++.h"
 #include "uartController.h"
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <fcntl.h>
-#include <fstream>
 #include <span>
 #include <stdexcept>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
-
-#ifdef DEBUG
-#include <iomanip>
-#include <iostream>
-std::string printHex(std::span<const uint8_t> data) {
-  std::ostringstream oss;
-  for (const auto &byte : data) {
-    oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << " ";
-  }
-  return oss.str();
-}
-
-#endif
 
 std::vector<uint8_t> ModbusController::WriteMessage::build() const {
   std::vector<uint8_t> msg = {ESP_ADDRESS,
@@ -74,22 +61,31 @@ bool ModbusController::isValidCRC(const unsigned char *buffer, int length) {
 }
 
 std::vector<uint8_t> ModbusController::makeRequest(Message &message) {
+  auto builtMessage = message.build();
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "Sending Modbus message: ";
   uart_.ensureOpen();
   uart_.send(message.build());
   uart_.sync();
 
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "Message sent successfully, waiting for response...";
+
   auto response = uart_.read(256);
+
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "Received Modbus response";
 
   if (!isValidCRC(response.data(), response.size())) {
     uart_.ensureClosed();
-    throw std::runtime_error("Invalid CRC checksum");
+    throw std::runtime_error("Invalid CRC checksum: " +
+                             toHexString(std::span(response)));
   }
 
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "CRC checksum is valid";
   uart_.ensureClosed();
   return response;
 }
 
 ModbusController::RegisterState ModbusController::readRegisters() {
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "Reading registers from Modbus controller";
   RegisterState state;
   ReadMessage readMessage(SubCode::MOVE_X, 5);
   auto response = makeRequest(readMessage);
@@ -107,6 +103,7 @@ ModbusController::RegisterState ModbusController::readRegisters() {
 
   state.isSettingPreset = response[offset++];
   state.isCalibrating = response[offset++];
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "Registers read successfully";
   clearRegisters(SubCode::MOVE_X, 5);
   return state;
 }
@@ -116,13 +113,22 @@ void ModbusController::init() {
 }
 
 void ModbusController::clearRegisters(SubCode espRegister, int bytesToClear) {
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "Clearing " << bytesToClear << " bytes for ESP register: "
+                              << static_cast<int>(espRegister);
+
   std::vector<uint8_t> clearData(bytesToClear, 0);
   write(espRegister, std::span(clearData));
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "Registers cleared successfully";
 }
 
 void ModbusController::write(SubCode espRegister, std::span<const uint8_t> data) {
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "Writing " << data.size() << " bytes to ESP register: "
+                              << static_cast<int>(espRegister);
+
   WriteMessage writeMessage(espRegister, data);
   makeRequest(writeMessage);
+
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "Data written successfully to ESP register: ";
 }
 
 void ModbusController::write(SubCode espRegister, float value) {
