@@ -79,9 +79,9 @@ void move(MotorController &motor, bool forward, bool isXMotor) {
   }
 
   if (forward)
-    motor.setForward();
+    motor.setForward(motor.calculateLimitSpeed());
   else
-    motor.setBackward();
+    motor.setBackward(motor.calculateLimitSpeed());
 
   usleep(50000);
   updatePosition(motor, isXMotor);
@@ -158,33 +158,63 @@ void configurePins() {
   gpio.configureInputPin(BOTAO_DIR);
 }
 
+void activateXRay() {
+  gpio.setDigitalOutput(CAPTURA, true);
+  usleep(10000);
+  gpio.setDigitalOutput(CAPTURA, false);
+}
+
 // ------------ MOVIMENTAÇÃO ------------
 
+enum Direction { NONE, UP, DOWN, LEFT, RIGHT };
+
+Direction lastDirection = NONE;
+
 void behavior(const ModbusController::RegisterState registers) {
+
   bool left = gpio.getDigitalInput(BOTAO_ESQ) || registers.isMoving[0];
   bool right = gpio.getDigitalInput(BOTAO_DIR) || registers.isMoving[1];
   bool up = gpio.getDigitalInput(BOTAO_CIMA) || registers.isMoving[2];
   bool down = gpio.getDigitalInput(BOTAO_BAIXO) || registers.isMoving[3];
 
-  int activeCount = up + down + left + right;
-  if (activeCount > 1)
-    return;
+  Direction newDirection = NONE;
+  if (up) newDirection = UP;
+  else if (down) newDirection = DOWN;
+  else if (left) newDirection = LEFT;
+  else if (right) newDirection = RIGHT;
 
-  if (up) {
-    LOG(DEBUG) << "Moving up.";
-    move(motorY, true, false);
+  if (newDirection == NONE && lastDirection != NONE) {
+    newDirection = lastDirection;
   }
-  if (down) {
-    LOG(DEBUG) << "Moving down.";
-    move(motorY, false, false);
+  // Pressiona 2 vezes o mesmo botao printa raio X
+  else if (newDirection == lastDirection) {
+    lastDirection = NONE;
+    activateXRay();
+    return;
   }
-  if (left) {
-    LOG(DEBUG) << "Moving left.";
-    move(motorX, false, true);
+  else if (newDirection != NONE) {
+    lastDirection = newDirection;
   }
-  if (right) {
-    LOG(DEBUG) << "Moving left.";
-    move(motorX, true, true);
+
+  switch (newDirection) {
+    case UP:
+      LOG(DEBUG) << "Moving up.";
+      move(motorY, true, false);
+      break;
+    case DOWN:
+      LOG(DEBUG) << "Moving down.";
+      move(motorY, false, false);
+      break;
+    case LEFT:
+      LOG(DEBUG) << "Moving left.";
+      move(motorX, false, true);
+      break;
+    case RIGHT:
+      LOG(DEBUG) << "Moving right.";
+      move(motorX, true, true);
+      break;
+    default:
+      break;
   }
 }
 

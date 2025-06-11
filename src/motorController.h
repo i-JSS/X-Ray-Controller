@@ -14,14 +14,15 @@ public:
   void init();
   void calibrate();
 
-  void setForward() const;
-  void setBackward() const;
   void brake() const;
   void free() const;
   void resetEncoderCount();
   motorData getMotorData() const;
   bool onForwardLimit() const;
   bool onBackwardLimit() const;
+
+  float calculateLimitSpeed();
+
   ~MotorController();
 
   void setForward(float pwm) const;

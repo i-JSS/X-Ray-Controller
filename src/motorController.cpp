@@ -47,14 +47,14 @@ void MotorController::calibrate() {
   LOG(INFO) << "Starting motor calibration. (PWM " << PWM_OUT << ")";
   constexpr int DIST_FROM_LIMIT_CM = 3;
 
-  setBackward();
+  setBackward(speed);
   while (!gpio.getDigitalInput(MIN_SENSOR)) {
     usleep(1000);
   }
   brake();
   resetEncoderCount();
 
-  setForward();
+  setForward(speed);
   while (!gpio.getDigitalInput(MAX_SENSOR)) {
     usleep(1000);
   }
@@ -74,8 +74,9 @@ void MotorController::calibrate() {
              << ", CM per pulse: " << cmPerPulse
              << ", Virtual min limit: " << virtualMinLimit
              << ", Virtual max limit: " << virtualMaxLimit;
-  setBackward();
-  while (pulseCount.load() > virtualMinLimit) {
+
+  while (!onBackwardLimit()) {
+    setBackward(calculateLimitSpeed());
     usleep(1000);
   }
   brake();
@@ -88,18 +89,11 @@ void MotorController::setForward(float pwm) const {
   gpio.setDigitalOutput(DIR2, false);
   gpio.setPWMOutput(PWM_OUT, pwm);
 }
-void MotorController::setForward() const {
-  setForward(speed);
-}
 
 void MotorController::setBackward(float pwm) const {
   gpio.setDigitalOutput(DIR1, false);
   gpio.setDigitalOutput(DIR2, true);
   gpio.setPWMOutput(PWM_OUT, pwm);
-}
-
-void MotorController::setBackward() const {
-  setBackward(speed);
 }
 
 void MotorController::brake() const {
@@ -138,12 +132,20 @@ motorData MotorController::getMotorData() const {
 }
 
 bool MotorController::onForwardLimit() const {
-  return pulseCount.load() > virtualMaxLimit;
+  return pulseCount.load() > virtualMaxLimit - virtualMinLimit;
 }
 
 bool MotorController::onBackwardLimit() const {
-  return pulseCount.load() < virtualMinLimit;
+  return pulseCount.load() < virtualMinLimit * 2;
 }
+
+float MotorController::calculateLimitSpeed() {
+  int pulse = pulseCount.load();
+  if (pulse < virtualMinLimit * 6 || pulse < virtualMaxLimit - virtualMinLimit * 5)
+    return speed / 2;
+  return speed;
+}
+
 
 MotorController::~MotorController() {
   stopEncoder.store(true);
