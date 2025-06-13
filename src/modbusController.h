@@ -16,6 +16,11 @@
 
 class ModbusController {
 public:
+  static constexpr int MODBUS_HEADER_SIZE = 3;
+  static constexpr int READ_REGISTER_COUNT = 5;
+  static constexpr int ALL_REGISTER_COUNT = 30;
+  static constexpr int MOVE_REGISTER_COUNT = 2;
+
   enum class Code : uint8_t {
     READ = 0x03,
     WRITE = 0x06,

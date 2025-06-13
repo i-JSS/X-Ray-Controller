@@ -113,13 +113,15 @@ std::ostream &operator<<(std::ostream &os, const ModbusController::RegisterState
 ModbusController::RegisterState ModbusController::readRegisters() {
   LOG_EVERY_N(DEBUG_N, DEBUG) << "Reading registers from Modbus controller";
   RegisterState state;
-  ReadMessage readMessage(SubCode::MOVE_X, 5);
+  ReadMessage readMessage(SubCode::MOVE_X, READ_REGISTER_COUNT);
   auto response = makeRequest(readMessage);
-  int offset = 2;
+  int idx = MODBUS_HEADER_SIZE;
 
-  int moveByte = (response[offset + 1] << 2) | response[offset];
-  offset += 3;
-  uint8_t presetByte = response[offset++];
+  // Shift de 2 bits, pois a resposta só contém 2 bits de informação
+  int moveByte = (response[idx + 1] << 2) | response[idx];
+  idx += MOVE_REGISTER_COUNT;
+
+  uint8_t presetByte = response[idx++];
   for (int i = 0; i < 4; i++) {
     int currentMask = 1 << i;
     state.isMoving[i] = moveByte & currentMask;
@@ -127,15 +129,15 @@ ModbusController::RegisterState ModbusController::readRegisters() {
       state.selectedPreset = i + 1;
   }
 
-  state.isSettingPreset = response[offset++];
-  state.isCalibrating = response[offset++];
+  state.isSettingPreset = response[idx++];
+  state.isCalibrating = response[idx++];
   LOG_EVERY_N(DEBUG_N, DEBUG) << "Registers read successfully: " << state;
-  clearRegisters(SubCode::MOVE_X, 5);
+  clearRegisters(SubCode::MOVE_X, READ_REGISTER_COUNT);
   return state;
 }
 
 void ModbusController::init() {
-  clearRegisters(SubCode::MOVE_X, 30);
+  clearRegisters(SubCode::MOVE_X, ALL_REGISTER_COUNT);
 }
 
 void ModbusController::clearRegisters(SubCode espRegister, int bytesToClear) {
