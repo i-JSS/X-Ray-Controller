@@ -62,9 +62,9 @@ bool ModbusController::isValidCRC(const unsigned char *buffer, int length) {
 
 std::vector<uint8_t> ModbusController::makeRequest(Message &message) {
   auto builtMessage = message.build();
-  LOG_EVERY_N(DEBUG_N, DEBUG) << "Sending Modbus message: ";
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "Sending Modbus message: " << toHexString(builtMessage);
   uart_.ensureOpen();
-  uart_.send(message.build());
+  uart_.send(builtMessage);
   uart_.sync();
 
   LOG_EVERY_N(DEBUG_N, DEBUG) << "Message sent successfully, waiting for response...";
@@ -82,6 +82,32 @@ std::vector<uint8_t> ModbusController::makeRequest(Message &message) {
   LOG_EVERY_N(DEBUG_N, DEBUG) << "CRC checksum is valid";
   uart_.ensureClosed();
   return response;
+}
+
+std::ostream &operator<<(std::ostream &os, const ModbusController::RegisterState &state) {
+  os << "RegisterState { ";
+
+  os << "isMoving: [";
+  for (size_t i = 0; i < state.isMoving.size(); ++i) {
+    os << (state.isMoving[i] ? "true" : "false");
+    if (i < state.isMoving.size() - 1)
+      os << ", ";
+  }
+  os << "], ";
+
+  os << "selectedPreset: ";
+  if (state.selectedPreset.has_value()) {
+    os << state.selectedPreset.value();
+  } else {
+    os << "none";
+  }
+  os << ", ";
+
+  os << "isCalibrating: " << (state.isCalibrating ? "true" : "false") << ", ";
+  os << "isSettingPreset: " << (state.isSettingPreset ? "true" : "false");
+
+  os << " }";
+  return os;
 }
 
 ModbusController::RegisterState ModbusController::readRegisters() {
@@ -103,7 +129,7 @@ ModbusController::RegisterState ModbusController::readRegisters() {
 
   state.isSettingPreset = response[offset++];
   state.isCalibrating = response[offset++];
-  LOG_EVERY_N(DEBUG_N, DEBUG) << "Registers read successfully";
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "Registers read successfully: " << state;
   clearRegisters(SubCode::MOVE_X, 5);
   return state;
 }
