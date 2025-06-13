@@ -62,9 +62,9 @@ bool ModbusController::isValidCRC(const unsigned char *buffer, int length) {
 
 std::vector<uint8_t> ModbusController::makeRequest(Message &message) {
   auto builtMessage = message.build();
-  LOG_EVERY_N(DEBUG_N, DEBUG) << "Sending Modbus message: ";
+  LOG_EVERY_N(DEBUG_N, DEBUG) << "Sending Modbus message: " << toHexString(builtMessage);
   uart_.ensureOpen();
-  uart_.send(message.build());
+  uart_.send(builtMessage);
   uart_.sync();
 
   LOG_EVERY_N(DEBUG_N, DEBUG) << "Message sent successfully, waiting for response...";
