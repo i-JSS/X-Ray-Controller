@@ -118,7 +118,7 @@ ModbusController::RegisterState ModbusController::readRegisters() {
   int offset = 2;
 
   int moveByte = (response[offset + 1] << 2) | response[offset];
-  offset += 2;
+  offset += 3;
   uint8_t presetByte = response[offset++];
   for (int i = 0; i < 4; i++) {
     int currentMask = 1 << i;
