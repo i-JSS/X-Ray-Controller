@@ -65,7 +65,7 @@ void MotorController::calibrate() {
     throw std::runtime_error("Calibration error");
 
   cmPerPulse = static_cast<double>(trackLengthInCM) / trackLengthInPulses;
-  const long long int marginPulses = static_cast<long long int>(DIST_FROM_LIMIT_CM / cmPerPulse) * 5;
+  const long long int marginPulses = static_cast<long long int>(DIST_FROM_LIMIT_CM / cmPerPulse) * 2;
 
   virtualMinLimit = marginPulses;
   virtualMaxLimit = trackLengthInPulses - marginPulses;
