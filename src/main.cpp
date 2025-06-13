@@ -56,8 +56,7 @@ void updatePosition(MotorController &motor, bool isXMotor) {
   const ModbusController::SubCode distanceRegister = isXMotor ? ModbusController::SubCode::X_POS : ModbusController::SubCode::Y_POS;
 
   motorData data = motor.getMotorData();
-  // arredonda pois 40% do tempo a velocidade fica 0.078 e mostra zero no dashboard
-  modbus.write(speedRegister, (data.speed + 0.03f));
+  modbus.write(speedRegister, data.speed);
   modbus.write(distanceRegister, data.distance);
 
   if (isXMotor)
@@ -79,9 +78,9 @@ void move(MotorController &motor, bool forward, bool isXMotor) {
   }
 
   if (forward)
-    motor.setForward(motor.calculateLimitSpeed());
+    motor.setForward(70);
   else
-    motor.setBackward(motor.calculateLimitSpeed());
+    motor.setBackward(70);
 
   usleep(50000);
   updatePosition(motor, isXMotor);
@@ -170,12 +169,12 @@ enum Direction { NONE, UP, DOWN, LEFT, RIGHT };
 
 Direction lastDirection = NONE;
 
-void behavior(const ModbusController::RegisterState registers) {
+void behavior() {
 
-  bool left = gpio.getDigitalInput(BOTAO_ESQ) || registers.isMoving[0];
-  bool right = gpio.getDigitalInput(BOTAO_DIR) || registers.isMoving[1];
-  bool up = gpio.getDigitalInput(BOTAO_CIMA) || registers.isMoving[2];
-  bool down = gpio.getDigitalInput(BOTAO_BAIXO) || registers.isMoving[3];
+  bool left = gpio.getDigitalInput(BOTAO_ESQ);
+  bool right = gpio.getDigitalInput(BOTAO_DIR);
+  bool up = gpio.getDigitalInput(BOTAO_CIMA);
+  bool down = gpio.getDigitalInput(BOTAO_BAIXO) ;
 
   Direction newDirection = NONE;
   if (up) newDirection = UP;
@@ -184,9 +183,10 @@ void behavior(const ModbusController::RegisterState registers) {
   else if (right) newDirection = RIGHT;
 
   if (newDirection == NONE && lastDirection != NONE) {
-    newDirection = lastDirection;
+    lastDirection = NONE;
+    return;
   }
-  // Pressiona 2 vezes o mesmo botao printa raio X
+
   else if (newDirection == lastDirection) {
     lastDirection = NONE;
     activateXRay();
@@ -268,14 +268,15 @@ int main() {
 
   while (true) {
     try {
-      auto registers = modbus.readRegisters();
-      updateBMP280();
-      if (registers.isCalibrating) {
-        LOG(INFO) << "Calibration button pressed. Starting calibration...";
-        calibrate();
-      }
-      preset(registers);
-      behavior(registers);
+      // auto registers = modbus.readRegisters();
+      // updateBMP280();
+      // if (registers.isCalibrating) {
+      //   LOG(INFO) << "Calibration button pressed. Starting calibration...";
+      //   calibrate();
+      // }
+      // preset(registers);
+      // behavior(registers);
+      behavior();
     } catch (const std::exception &e) {
       LOG(ERROR) << "Error caught: " << e.what();
       continue;

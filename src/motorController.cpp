@@ -65,7 +65,7 @@ void MotorController::calibrate() {
     throw std::runtime_error("Calibration error");
 
   cmPerPulse = static_cast<double>(trackLengthInCM) / trackLengthInPulses;
-  const long long int marginPulses = static_cast<long long int>(DIST_FROM_LIMIT_CM / cmPerPulse);
+  const long long int marginPulses = static_cast<long long int>(DIST_FROM_LIMIT_CM / cmPerPulse) * 5;
 
   virtualMinLimit = marginPulses;
   virtualMaxLimit = trackLengthInPulses - marginPulses;
@@ -76,7 +76,7 @@ void MotorController::calibrate() {
              << ", Virtual max limit: " << virtualMaxLimit;
 
   while (!onBackwardLimit()) {
-    setBackward(calculateLimitSpeed());
+    setBackward(speed);
     usleep(1000);
   }
   brake();
@@ -88,12 +88,22 @@ void MotorController::setForward(float pwm) const {
   gpio.setDigitalOutput(DIR1, true);
   gpio.setDigitalOutput(DIR2, false);
   gpio.setPWMOutput(PWM_OUT, pwm);
+
+  if (pulseCount.load() > virtualMaxLimit - virtualMinLimit * 6)
+    gpio.setPWMOutput(PWM_OUT, pwm/10);
+  else gpio.setPWMOutput(PWM_OUT, pwm);
+
 }
 
 void MotorController::setBackward(float pwm) const {
   gpio.setDigitalOutput(DIR1, false);
   gpio.setDigitalOutput(DIR2, true);
   gpio.setPWMOutput(PWM_OUT, pwm);
+
+  if (pulseCount.load() < virtualMinLimit * 7)
+    gpio.setPWMOutput(PWM_OUT, pwm/10);
+  else gpio.setPWMOutput(PWM_OUT, pwm);
+
 }
 
 void MotorController::brake() const {
@@ -132,20 +142,12 @@ motorData MotorController::getMotorData() const {
 }
 
 bool MotorController::onForwardLimit() const {
-  return pulseCount.load() > virtualMaxLimit - virtualMinLimit;
+  return pulseCount.load() > virtualMaxLimit;
 }
 
 bool MotorController::onBackwardLimit() const {
-  return pulseCount.load() < virtualMinLimit * 2;
+  return pulseCount.load() < virtualMinLimit;
 }
-
-float MotorController::calculateLimitSpeed() {
-  int pulse = pulseCount.load();
-  if (pulse < virtualMinLimit * 6 || pulse < virtualMaxLimit - virtualMinLimit * 5)
-    return speed / 2;
-  return speed;
-}
-
 
 MotorController::~MotorController() {
   stopEncoder.store(true);

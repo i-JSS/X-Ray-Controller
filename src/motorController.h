@@ -21,8 +21,6 @@ public:
   bool onForwardLimit() const;
   bool onBackwardLimit() const;
 
-  float calculateLimitSpeed();
-
   ~MotorController();
 
   void setForward(float pwm) const;
