@@ -40,7 +40,6 @@ public:
     bool isCalibrating = false;
     bool isSettingPreset = false;
   };
-
   explicit ModbusController(const std::string &portName, const speed_t baudRate)
       : uart_(portName, baudRate) {}
 
@@ -120,3 +119,5 @@ private:
   static short calculateCRC(const unsigned char *commands, int size);
   static bool isValidCRC(const unsigned char *buffer, int length);
 };
+
+std::ostream &operator<<(std::ostream &os, const ModbusController::RegisterState &state);
