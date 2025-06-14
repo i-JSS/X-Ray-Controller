@@ -169,12 +169,12 @@ enum Direction { NONE, UP, DOWN, LEFT, RIGHT };
 
 Direction lastDirection = NONE;
 
-void behavior() {
+void behavior(const ModbusController::RegisterState registers) {
 
-  bool left = gpio.getDigitalInput(BOTAO_ESQ);
-  bool right = gpio.getDigitalInput(BOTAO_DIR);
-  bool up = gpio.getDigitalInput(BOTAO_CIMA);
-  bool down = gpio.getDigitalInput(BOTAO_BAIXO) ;
+  bool left = gpio.getDigitalInput(BOTAO_ESQ) || registers.isMoving[0];
+  bool right = gpio.getDigitalInput(BOTAO_DIR) || registers.isMoving[1];
+  bool up = gpio.getDigitalInput(BOTAO_CIMA) || registers.isMoving[2];
+  bool down = gpio.getDigitalInput(BOTAO_BAIXO) || registers.isMoving[3];
 
   Direction newDirection = NONE;
   if (up) newDirection = UP;
@@ -240,11 +240,48 @@ void preset(const ModbusController::RegisterState registers) {
   }
 }
 
+void printRegisters(const ModbusController::RegisterState& registers) {
+  bool shouldPrint = registers.isCalibrating || registers.isSettingPreset || registers.selectedPreset.has_value();
+
+  for (bool moving : registers.isMoving) {
+    if (moving) {
+      shouldPrint = true;
+      break;
+    }
+  }
+
+  if (!shouldPrint) return;
+
+  LOG(INFO) << "Registers received:";
+  LOG(INFO) << "isCalibrating: " << (registers.isCalibrating ? "true" : "false");
+  LOG(INFO) << "isSettingPreset: " << (registers.isSettingPreset ? "true" : "false");
+
+  if (registers.selectedPreset.has_value()) {
+    LOG(INFO) << "selectedPreset: " << registers.selectedPreset.value();
+  } else {
+    LOG(INFO) << "selectedPreset: <none>";
+  }
+
+  for (int i = 0; i < 4; ++i) {
+    LOG(INFO) << "isMoving[" << i << "]: " << (registers.isMoving[i] ? "true" : "false");
+  }
+}
+
+bool areEqual(const ModbusController::RegisterState& a, const ModbusController::RegisterState& b) {
+  return a.isMoving == b.isMoving &&
+         a.selectedPreset == b.selectedPreset &&
+         a.isCalibrating == b.isCalibrating &&
+         a.isSettingPreset == b.isSettingPreset;
+}
+
 // ------------ MAIN ------------
 
 void emergencyHandler() {
+  LOG(INFO) << "Emergency handler triggered!";
   modbus.init();
   modbus.ensureClosed();
+  motorX.brake();
+  motorY.brake();
   bmp280.close();
   exit(0);
 }
@@ -265,18 +302,21 @@ int main() {
   LOG(INFO) << "Starting initial calibration...";
   calibrate();
   LOG(INFO) << "Initial calibration done...";
-
+  ModbusController::RegisterState lastRegisters = {};
   while (true) {
     try {
-      // auto registers = modbus.readRegisters();
-      // updateBMP280();
-      // if (registers.isCalibrating) {
-      //   LOG(INFO) << "Calibration button pressed. Starting calibration...";
-      //   calibrate();
-      // }
-      // preset(registers);
-      // behavior(registers);
-      behavior();
+      ModbusController::RegisterState registers = modbus.readRegisters();
+      if (areEqual(registers, lastRegisters)) {
+        printRegisters(registers);
+        if (registers.isCalibrating) {
+          LOG(INFO) << "Calibration button pressed. Starting calibration...";
+          calibrate();
+        }
+        preset(registers);
+        behavior(registers);
+      }
+      updateBMP280();
+      lastRegisters = registers;
     } catch (const std::exception &e) {
       LOG(ERROR) << "Error caught: " << e.what();
       continue;
