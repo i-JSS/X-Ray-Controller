@@ -7,6 +7,12 @@ Integrantes:
 | André Silva   | Hunter104 | 221007813 |
 | João Carvalho | i-JSS     | 221008150 |
 
+## Apresentação
+
+Link para apresentação:
+
+https://youtu.be/WeBwpsw6QZs ou clique [aqui](https://youtu.be/WeBwpsw6QZs).
+
 ## Módulos
 
 Gerenciamento de erros é feito através de exceções, onde possível foi colocada funcionalidade de fechamento em funções destrutoras,
@@ -22,8 +28,7 @@ assegurando que recursos sejam liberados corretamente de forma automática ao m�
     interface pública consiste em incialização, leitura de todos os registradores (informação armazenada em um struct para fácil manipulação), e escrita singular de registrador
     com sobrecarga de operadores para diferentes tipos de dados.
 - pidController: Classe que encapsula estado e funcionalidade de um controle PID, permitindo instanciação de múltiplos controladores com diferentes parâmetros e contextos de execução.
-<!-- Não merjado ainda -->
-- - easyLoggingpp: Biblioteca externa para logging, utilizada para registrar eventos e estados do sistema com intuito de aumentar a rastreabilidade e facilitar o debug.
+- easyLoggingpp: Biblioteca externa para logging, utilizada para registrar eventos e estados do sistema com intuito de aumentar a rastreabilidade e facilitar o debug.
 
 ## Compilação
 
