@@ -56,8 +56,16 @@ void updatePosition(MotorController &motor, bool isXMotor) {
   const ModbusController::SubCode distanceRegister = isXMotor ? ModbusController::SubCode::X_POS : ModbusController::SubCode::Y_POS;
 
   motorData data = motor.getMotorData();
-  modbus.write(speedRegister, data.speed);
-  modbus.write(distanceRegister, data.distance);
+  while (true) {
+    try {
+      modbus.write(speedRegister, data.speed);
+      modbus.write(distanceRegister, data.distance);
+      break;
+    } catch (const std::exception &e) {
+      LOG(ERROR) << "Error captured on update position: " << e.what();
+      continue;
+    }
+  }
 
   if (isXMotor)
     lastPositionX = data.distance;
