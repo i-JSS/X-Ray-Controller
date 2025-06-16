@@ -168,3 +168,8 @@ void ModbusController::write(SubCode espRegister, std::byte value) {
   uint8_t valueAsUint8 = static_cast<uint8_t>(value);
   write(espRegister, std::span(&valueAsUint8, 1));
 }
+
+void ModbusController::close() {
+  clearRegisters(SubCode::MOVE_X, ALL_REGISTER_COUNT);
+  uart_.ensureClosed();
+}

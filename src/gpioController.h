@@ -75,4 +75,6 @@ public:
   void setPWMOutput(int pin, int value);
   void setDigitalOutput(int pin, bool value);
   bool getDigitalInput(int pin) const;
+
+  void closeAll();
 };

@@ -52,6 +52,7 @@ public:
   [[nodiscard]] RegisterState readRegisters();
   void write(SubCode espRegister, float value);
   void write(SubCode espRegister, byte value);
+  void close();
   void ensureClosed() { uart_.ensureClosed(); }
 
 private:

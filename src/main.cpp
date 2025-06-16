@@ -173,31 +173,35 @@ void activateXRay() {
 
 // ------------ MOVIMENTAÇÃO ------------
 
-enum Direction { NONE, UP, DOWN, LEFT, RIGHT };
+enum Direction { NONE,
+                 UP,
+                 DOWN,
+                 LEFT,
+                 RIGHT };
 
 Direction lastDirectionGPIO = NONE;
 Direction lastDirectionModbus = NONE;
 
 void updateDirection(Direction direction) {
   switch (direction) {
-    case UP:
-      LOG(DEBUG) << "Moving up.";
-      move(motorY, true, false);
-      break;
-    case DOWN:
-      LOG(DEBUG) << "Moving down.";
-      move(motorY, false, false);
-      break;
-    case LEFT:
-      LOG(DEBUG) << "Moving left.";
-      move(motorX, false, true);
-      break;
-    case RIGHT:
-      LOG(DEBUG) << "Moving right.";
-      move(motorX, true, true);
-      break;
-    default:
-      break;
+  case UP:
+    LOG(DEBUG) << "Moving up.";
+    move(motorY, true, false);
+    break;
+  case DOWN:
+    LOG(DEBUG) << "Moving down.";
+    move(motorY, false, false);
+    break;
+  case LEFT:
+    LOG(DEBUG) << "Moving left.";
+    move(motorX, false, true);
+    break;
+  case RIGHT:
+    LOG(DEBUG) << "Moving right.";
+    move(motorX, true, true);
+    break;
+  default:
+    break;
   }
 }
 
@@ -208,14 +212,18 @@ void behavior(const ModbusController::RegisterState registers) {
   bool down = registers.isMoving[3];
 
   Direction newDirection = NONE;
-  if (up) newDirection = UP;
-  else if (down) newDirection = DOWN;
-  else if (left) newDirection = LEFT;
-  else if (right) newDirection = RIGHT;
+  if (up)
+    newDirection = UP;
+  else if (down)
+    newDirection = DOWN;
+  else if (left)
+    newDirection = LEFT;
+  else if (right)
+    newDirection = RIGHT;
 
   if (newDirection == NONE)
     return;
-  if (lastDirectionModbus == newDirection) 
+  if (lastDirectionModbus == newDirection)
     lastDirectionModbus = NONE;
   else
     lastDirectionModbus = newDirection;
@@ -229,21 +237,23 @@ void behavior() {
   bool down = gpio.getDigitalInput(BOTAO_BAIXO);
 
   Direction newDirection = NONE;
-  if (up) newDirection = UP;
-  else if (down) newDirection = DOWN;
-  else if (left) newDirection = LEFT;
-  else if (right) newDirection = RIGHT;
+  if (up)
+    newDirection = UP;
+  else if (down)
+    newDirection = DOWN;
+  else if (left)
+    newDirection = LEFT;
+  else if (right)
+    newDirection = RIGHT;
 
   if (newDirection == NONE && lastDirectionGPIO != NONE) {
     lastDirectionGPIO = NONE;
     return;
-  }
-  else if (newDirection == lastDirectionGPIO) {
+  } else if (newDirection == lastDirectionGPIO) {
     lastDirectionGPIO = NONE;
     activateXRay();
     return;
-  }
-  else if (newDirection != NONE) {
+  } else if (newDirection != NONE) {
     lastDirectionGPIO = newDirection;
   }
 
@@ -272,7 +282,7 @@ void preset(const ModbusController::RegisterState registers) {
   }
 }
 
-void printRegisters(const ModbusController::RegisterState& registers) {
+void printRegisters(const ModbusController::RegisterState &registers) {
   bool shouldPrint = registers.isCalibrating || registers.isSettingPreset || registers.selectedPreset.has_value();
 
   for (bool moving : registers.isMoving) {
@@ -282,7 +292,8 @@ void printRegisters(const ModbusController::RegisterState& registers) {
     }
   }
 
-  if (!shouldPrint) return;
+  if (!shouldPrint)
+    return;
 
   LOG(INFO) << "Registers received:";
   LOG(INFO) << "isCalibrating: " << (registers.isCalibrating ? "true" : "false");
@@ -299,7 +310,7 @@ void printRegisters(const ModbusController::RegisterState& registers) {
   }
 }
 
-bool areEqual(const ModbusController::RegisterState& a, const ModbusController::RegisterState& b) {
+bool areEqual(const ModbusController::RegisterState &a, const ModbusController::RegisterState &b) {
   return a.isMoving == b.isMoving &&
          a.selectedPreset == b.selectedPreset &&
          a.isCalibrating == b.isCalibrating &&
@@ -309,11 +320,15 @@ bool areEqual(const ModbusController::RegisterState& a, const ModbusController::
 // ------------ MAIN ------------
 
 void emergencyHandler() {
-  LOG(INFO) << "Emergency handler triggered!";
-  modbus.init();
-  modbus.ensureClosed();
+  LOG(WARNING) << "Emergency handler triggered!";
+  LOG(WARNING) << "Stopping modbus";
+  modbus.close();
+  LOG(WARNING) << "Stopping motors";
   motorX.brake();
   motorY.brake();
+  LOG(WARNING) << "Closing GPIO pins";
+  GPIOController::getInstance().closeAll();
+  LOG(WARNING) << "Closing BMP280";
   bmp280.close();
   exit(0);
 }
@@ -347,7 +362,7 @@ int main() {
         preset(registers);
         behavior(registers);
       }
-	  behavior();
+      behavior();
       updateBMP280();
       lastRegisters = registers;
     } catch (const std::exception &e) {

@@ -73,3 +73,12 @@ void GPIOController::setDigitalOutput(int pin, bool value) {
 bool GPIOController::getDigitalInput(int pin) const {
   return digitalRead(pin) == HIGH;
 }
+
+void GPIOController::closeAll() {
+  LOG(INFO) << "Closing all configured pins";
+  for (const auto &pin : configuredPins) {
+    pinMode(pin.id, OUTPUT);
+    digitalWrite(pin.id, LOW);
+  }
+  configuredPins.clear();
+}
