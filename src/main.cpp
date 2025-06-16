@@ -361,6 +361,7 @@ int main() {
         }
         preset(registers);
         behavior(registers);
+        updateDirection(lastDirectionModbus);
       }
       behavior();
       updateBMP280();
