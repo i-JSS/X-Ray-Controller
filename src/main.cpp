@@ -175,36 +175,11 @@ void activateXRay() {
 
 enum Direction { NONE, UP, DOWN, LEFT, RIGHT };
 
-Direction lastDirection = NONE;
+Direction lastDirectionGPIO = NONE;
+Direction lastDirectionModbus = NONE;
 
-void behavior(const ModbusController::RegisterState registers) {
-
-  bool left = gpio.getDigitalInput(BOTAO_ESQ) || registers.isMoving[0];
-  bool right = gpio.getDigitalInput(BOTAO_DIR) || registers.isMoving[1];
-  bool up = gpio.getDigitalInput(BOTAO_CIMA) || registers.isMoving[2];
-  bool down = gpio.getDigitalInput(BOTAO_BAIXO) || registers.isMoving[3];
-
-  Direction newDirection = NONE;
-  if (up) newDirection = UP;
-  else if (down) newDirection = DOWN;
-  else if (left) newDirection = LEFT;
-  else if (right) newDirection = RIGHT;
-
-  if (newDirection == NONE && lastDirection != NONE) {
-    lastDirection = NONE;
-    return;
-  }
-
-  else if (newDirection == lastDirection) {
-    lastDirection = NONE;
-    activateXRay();
-    return;
-  }
-  else if (newDirection != NONE) {
-    lastDirection = newDirection;
-  }
-
-  switch (newDirection) {
+void updateDirection(Direction direction) {
+  switch (direction) {
     case UP:
       LOG(DEBUG) << "Moving up.";
       move(motorY, true, false);
@@ -224,6 +199,55 @@ void behavior(const ModbusController::RegisterState registers) {
     default:
       break;
   }
+}
+
+void behavior(const ModbusController::RegisterState registers) {
+  bool left = registers.isMoving[0];
+  bool right = registers.isMoving[1];
+  bool up = registers.isMoving[2];
+  bool down = registers.isMoving[3];
+
+  Direction newDirection = NONE;
+  if (up) newDirection = UP;
+  else if (down) newDirection = DOWN;
+  else if (left) newDirection = LEFT;
+  else if (right) newDirection = RIGHT;
+
+  if (newDirection == NONE)
+    return;
+  if (lastDirectionModbus == newDirection) 
+    lastDirectionModbus = NONE;
+  else
+    lastDirectionModbus = newDirection;
+  updateDirection(lastDirectionModbus);
+}
+
+void behavior() {
+  bool left = gpio.getDigitalInput(BOTAO_ESQ);
+  bool right = gpio.getDigitalInput(BOTAO_DIR);
+  bool up = gpio.getDigitalInput(BOTAO_CIMA);
+  bool down = gpio.getDigitalInput(BOTAO_BAIXO);
+
+  Direction newDirection = NONE;
+  if (up) newDirection = UP;
+  else if (down) newDirection = DOWN;
+  else if (left) newDirection = LEFT;
+  else if (right) newDirection = RIGHT;
+
+  if (newDirection == NONE && lastDirectionGPIO != NONE) {
+    lastDirectionGPIO = NONE;
+    return;
+  }
+  else if (newDirection == lastDirectionGPIO) {
+    lastDirectionGPIO = NONE;
+    activateXRay();
+    return;
+  }
+  else if (newDirection != NONE) {
+    lastDirectionGPIO = newDirection;
+  }
+
+  updateDirection(newDirection);
 }
 
 bool usingPreset = false;
@@ -323,6 +347,7 @@ int main() {
         preset(registers);
         behavior(registers);
       }
+	  behavior();
       updateBMP280();
       lastRegisters = registers;
     } catch (const std::exception &e) {
