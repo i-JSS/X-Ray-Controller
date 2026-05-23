@@ -1,4 +1,4 @@
-# Trabalho 2 - 2025-1
+# X-Ray-Controller - Trabalho 2 - 2025-1
 
 Integrantes:
 
@@ -8,6 +8,9 @@ Integrantes:
 | João Carvalho | i-JSS     | 221008150 |
 
 ## Apresentação
+
+![Sensores](images/output5.gif)
+![Motores](images/output4.gif)
 
 Link para apresentação:
 
