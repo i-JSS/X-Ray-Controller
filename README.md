@@ -1,4 +1,4 @@
-# X-Ray-Controller - Trabalho 2 - 2025-1
+# X Ray Controller - Trabalho 2 - 2025-1
 
 ![C++](https://img.shields.io/badge/C++-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
 ![CMake](https://img.shields.io/badge/CMake-064F8C?style=for-the-badge&logo=cmake&logoColor=white)
