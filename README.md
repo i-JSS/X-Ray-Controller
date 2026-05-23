@@ -1,11 +1,11 @@
 # X-Ray-Controller - Trabalho 2 - 2025-1
 
-Integrantes:
-
-| Nome          | GitHub    | Matrícula |
-| ------------- | --------- | --------- |
-| André Silva   | Hunter104 | 221007813 |
-| João Carvalho | i-JSS     | 221008150 |
+![C++](https://img.shields.io/badge/C++-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
+![CMake](https://img.shields.io/badge/CMake-064F8C?style=for-the-badge&logo=cmake&logoColor=white)
+![Raspberry Pi](https://img.shields.io/badge/Raspberry_Pi-A22846?style=for-the-badge&logo=raspberrypi&logoColor=white)
+![I2C](https://img.shields.io/badge/I2C-Protocol-informational?style=for-the-badge)
+![UART](https://img.shields.io/badge/UART-Protocol-informational?style=for-the-badge)
+![Modbus](https://img.shields.io/badge/Modbus-Protocol-informational?style=for-the-badge)
 
 ## Apresentação
 
@@ -62,3 +62,11 @@ make
 
 Pode se utilizar a flag `-DCMAKE_BUILD_TYPE=Release` ao compilar com cmake para compilar em modo release, o que irá otimizar o código e deverá remover logs de debug,
 ou `-DCMAKE_BUILD_TYPE=Debug` para compilar em modo debug, o que irá incluir logs de debug e informações adicionais de rastreio.
+
+
+Integrantes:
+
+| Nome          | GitHub    | Matrícula |
+| ------------- | --------- | --------- |
+| André Silva   | Hunter104 | 221007813 |
+| João Carvalho | i-JSS     | 221008150 |
